@@ -1,0 +1,2867 @@
+
+
+
+
+Claim offer
+You have an Azure Policy assignment that uses a policy definition with the modify effect to automatically add a required tag to storage accounts. The policy evaluates existing storage accounts and marks several as non-compliant. What must you configure to update the existing non-compliant storage accounts with the required tag?
+
+You must configure a remediation task for the Azure Policy assignment.
+
+The modify effect can automatically fix resources during create/update operations, but existing resources that are already marked non-compliant require remediation to apply the changes retroactively.
+
+So the flow is:
+
+Policy with modify effect identifies non-compliant storage accounts.
+
+Create a remediation task on the policy assignment.
+
+Azure uses the managed identity associated with the policy assignment to add the required tag to existing storage accounts.
+
+Key requirement:
+
+The policy assignment must have a managed identity with the necessary permissions (typically Tag Contributor or similar).
+
+
+한글로
+
+기존의 비준수(non-compliant) Storage Account에 태그를 실제로 추가하려면 Remediation Task(수정 작업) 를 구성해야 합니다.
+
+modify 효과(effect)를 사용하는 Azure Policy는:
+
+새 리소스를 만들거나 수정할 때는 자동으로 태그를 추가할 수 있지만,
+
+이미 존재하는 리소스는 단순히 “비준수”로 표시만 합니다.
+
+따라서 기존 리소스를 수정하려면 추가로:
+
+Policy Assignment에 대해
+Remediation Task 를 생성하고,
+
+Policy Assignment에 연결된 Managed Identity 에 필요한 권한을 부여해야 합니다.
+(보통 Tag Contributor 권한)
+
+그러면 Azure가 기존 Storage Account들에도 자동으로 필요한 태그를 추가합니다.
+
+
+문제가 뭐지?
+
+문제 상황은 다음이야:
+
+Azure Policy에서 modify effect를 사용해서
+Storage Account에 필수 태그를 자동 추가하도록 설정함.
+
+그런데 기존에 이미 만들어져 있던 Storage Account들은
+태그가 없어서 non-compliant 로 표시됨.
+
+질문은:
+
+“기존 non-compliant 리소스들에도 실제로 태그를 적용하려면 무엇을 추가로 설정해야 하는가?”
+
+핵심 포인트:
+
+modify effect만 설정했다고 기존 리소스가 자동 수정되지는 않음.
+
+기존 리소스를 수정하려면 별도로 Remediation Task 를 실행해야 함.
+
+즉 문제의 핵심은:
+
+“Policy는 감지만 했고, 기존 리소스 수정 작업은 아직 안 했다.”
+
+
+effect ?
+
+Azure Policy의 effect 는:
+
+정책이 조건을 만족했을 때 Azure가 어떤 동작을 할지 정의하는 설정이야.
+
+예를 들면:
+
+deny
+→ 규칙 위반 리소스 생성 자체를 막음
+
+audit
+→ 허용은 하지만 비준수로 표시만 함
+
+modify
+→ 리소스를 자동 수정함 (예: 태그 추가)
+
+deployIfNotExists
+→ 필요한 리소스가 없으면 자동 배포
+
+이번 문제에서는:
+
+"effect": "modify"
+이므로 Azure Policy가 Storage Account에 필요한 태그를 자동으로 추가하려고 함.
+
+하지만 중요한 점:
+
+새로 생성/수정되는 리소스에는 자동 적용 가능
+
+기존 리소스는 자동 수정되지 않음
+
+그래서 기존 non-compliant 리소스를 고치려면
+→ Remediation Task 가 필요한 거야.
+
+
+policy 의 형태가 어떻게 돼? tag 내용도 policy 에 들어가?
+
+응. Azure Policy 안에 “어떤 태그를 추가할지” 내용까지 포함돼.
+
+보통 modify policy 는 이런 형태야:
+
+{
+  "mode": "Indexed",
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {
+          "field": "type",
+          "equals": "Microsoft.Storage/storageAccounts"
+        },
+        {
+          "field": "tags['Environment']",
+          "exists": "false"
+        }
+      ]
+    },
+    "then": {
+      "effect": "modify",
+      "details": {
+        "operations": [
+          {
+            "operation": "add",
+            "field": "tags['Environment']",
+            "value": "Production"
+          }
+        ]
+      }
+    }
+  }
+}
+의미:
+
+Storage Account 인데
+
+Environment 태그가 없으면
+
+modify effect 수행
+
+Environment=Production 태그 추가
+
+즉 policy 안에:
+
+대상 리소스
+
+조건
+
+추가할 태그 이름/값
+
+수행 동작(effect)
+
+이 전부 들어가.
+
+
+그런데, 어떻게 non-compliant 가 나올 수 있지? 예를 든 경우는 tag 가 없는 경우에 추가하는 건데, 문제의 예는 이거랑 다른가보다
+
+맞아. 잘 봤어.
+
+modify policy 라고 해서 항상 즉시 수정되는 건 아니기 때문에 non-compliant 가 나올 수 있어.
+
+핵심은 Azure Policy 평가 시점이야.
+
+예를 들어:
+
+이미 존재하던 Storage Account들에는 태그가 없음
+
+나중에 policy 를 assignment 함
+
+그러면 Azure Policy가 기존 리소스를 스캔하면서:
+
+“이 리소스는 규칙을 만족하지 않네”
+
+라고 판단해서 non-compliant 로 표시함.
+
+하지만 기존 리소스는 자동 수정되지 않았기 때문에 그대로 남아 있음.
+
+즉:
+
+상황	결과
+새로 생성되는 리소스	modify effect가 동작 가능
+기존 리소스	non-compliant 로 표시만 됨
+그래서:
+
+평가(evaluation)는 이미 했고
+
+수정(remediation)은 아직 안 한 상태인 거야.
+
+즉 문제의 포인트는:
+
+“왜 non-compliant 가 나왔냐?”
+→ 기존 리소스라서 아직 remediation 이 안 되었기 때문.
+
+
+Your answer is correct
+A remediation task for the policy assignment
+Explanation
+A remediation task must be created to bring existing non-compliant resources into compliance for policies with the modify or deployIfNotExists effect. When a policy with the modify effect evaluates existing resources, it marks non-compliant resources but does not automatically change them. A remediation task deploys the modify operations to the selected non-compliant resources. Reference: https://learn.microsoft.com/en-us/azure/governance/policy/how-to/remediate-resources
+
+맞아. 설명의 핵심 문장은 이거야:
+
+modify effect 는 existing resource 를 자동 변경하지 않는다.
+
+즉 Azure Policy 는 두 단계로 생각하면 쉬워:
+
+Evaluation (평가)
+
+리소스를 검사
+
+규칙 위반이면 non-compliant
+
+Remediation (수정)
+
+실제 변경 수행
+
+여기서 tag 추가됨
+
+그래서 문제 흐름은:
+
+Policy assignment 생성
+
+기존 Storage Account 평가
+
+태그 없음 발견
+
+non-compliant 표시
+
+아직 수정 안 됨
+
+remediation task 생성 필요
+
+특히 시험에서는 이 조합이 자주 나와:
+
+Effect	기존 리소스 자동 수정?	Remediation 필요?
+audit	X	X
+deny	X	X
+modify	X	O
+deployIfNotExists	X	O
+즉:
+
+modify
+
+deployIfNotExists
+
+→ 기존 리소스 수정하려면 거의 항상 remediation task 생각하면 돼.
+
+
+기존 리소스 자동 수정하는 effect 는 없는거야?
+
+사실상 없다고 보면 돼.
+
+Azure Policy의 기본 철학은:
+
+기존 리소스를 “평가”는 자동으로 하지만,
+“변경”은 명시적으로 remediation 을 실행해야 한다.
+
+왜냐면 기존 운영 리소스를 자동 변경하면 위험할 수 있어서 그래.
+
+그래서:
+
+Effect	새/수정 리소스	기존 리소스
+deny	생성 차단	영향 없음
+audit	비준수 표시	비준수 표시
+modify	생성/수정 시 변경 가능	remediation 필요
+deployIfNotExists	생성 후 자동 배포 가능	remediation 필요
+즉:
+
+기존 리소스 자동 수정 effect 는 없음
+
+기존 리소스 수정은 항상 remediation task 개념이 들어감
+
+특히 시험에서는:
+
+“existing non-compliant resources”
+
+라는 문구가 나오면 거의 자동으로:
+
+remediation task
+를 떠올리면 돼.
+
+
+You have an Azure subscription that contains a metric alert rule for a virtual machine. The alert rule is configured as stateful. The CPU usage exceeds the threshold and an alert fires. The CPU usage remains above the threshold for several hours. How many times will the action group be triggered during this period?
+
+Stateful alert 이므로 action group 은 한 번만(trigger once) 실행돼.
+
+이유:
+
+Stateful metric alert 는 alert 상태를 유지함.
+
+CPU usage 가 threshold 를 초과하면:
+
+Alert 발생
+
+Action group 실행
+
+Alert state = Fired
+
+그 후 CPU usage 가 계속 threshold 이상이어도:
+
+이미 Fired 상태이므로
+
+추가로 action group 을 반복 실행하지 않음.
+
+CPU usage 가 다시 정상 범위로 내려가서 alert 가 resolve 된 뒤,
+다시 threshold 를 넘으면 그때 새로운 alert/action 이 발생함.
+
+즉 정답:
+
+Action group is triggered once during the period.
+
+
+Stateful / not Stateful 설정할 수 있고, Stateful 이면 현재 기준으로 동일 alert 가 발생했는지 체크한다는 거야?
+
+응. 거의 그렇게 이해하면 돼.
+
+Stateful alert 는:
+
+“이미 이 alert 가 발생 중인가?” 상태(state)를 기억함.
+
+예시:
+
+CPU > 80%
+
+Alert 발생
+
+Action Group 실행
+
+Alert 상태 = Fired
+
+그 뒤:
+
+CPU 가 계속 90%, 95%, 88% ...
+
+여전히 조건 만족
+
+하지만:
+
+이미 같은 alert 가 Fired 상태이므로
+
+추가 알림 안 보냄.
+
+즉 Stateful 은:
+
+“같은 문제로 이미 alert 발생 중이면 중복 alert 안 보냄”
+
+개념이야.
+
+반대로 Stateless 는 상태를 기억 안 해서:
+
+평가 주기마다 조건 만족하면
+
+계속 action group 실행 가능
+
+예:
+
+5분마다 평가
+
+CPU 계속 90%
+
+→ 5분마다 계속 alert/action 가능.
+
+정리:
+
+종류	상태 기억	중복 Alert
+Stateful	O	방지
+Stateless	X	반복 가능
+그래서 운영에서는:
+
+너무 많은 알림 방지하려면 Stateful 많이 사용함.
+
+
+You are deploying an Azure Application Gateway to route traffic to Azure App Service backends. The App Service uses a default domain name of webapp1.azurewebsites.net. Users access the application through a custom domain. You need to configure the Application Gateway backend settings. What should you configure to ensure the App Service receives requests with the correct host name?
+
+정답 핵심은 Host header를 App Service에 맞게 설정하는 것이야.
+
+Azure Application Gateway에서 App Service(*.azurewebsites.net)를 백엔드로 쓸 때 중요한 포인트:
+
+App Service는 Host header가 자기 도메인과 일치하지 않으면 요청을 올바르게 처리하지 못할 수 있음
+
+✅ 해야 하는 설정
+Application Gateway의 HTTP settings (Backend settings) 에서:
+
+Override with new host name 또는 Pick host name from backend target
+
+을 설정해야 한다.
+
+💡 가장 일반적인 정답
+이 시나리오에서는 보통:
+
+Override the host name with the backend address
+
+즉:
+
+Host header를 webapp1.azurewebsites.net으로 변경
+
+왜 필요한가?
+사용자는:
+
+www.mycustomdomain.com 으로 접속
+
+하지만 backend(App Service)는:
+
+webapp1.azurewebsites.net 기준으로 요청을 처리함
+
+그래서 Application Gateway가 중간에서:
+
+Client → custom domain
+App Gateway → webapp1.azurewebsites.net (Host header 변경)
+이렇게 맞춰줘야 정상 동작함.
+
+정리
+👉 해야 할 것:
+
+Application Gateway Backend HTTP settings에서 Host header를 App Service 기본 도메인으로 override 설정
+
+
+Host header 가 뭐야?
+
+Host header는 HTTP 요청에서 “어느 도메인으로 접속했는지”를 알려주는 값이야.
+
+📌 기본 개념
+브라우저가 서버로 요청을 보낼 때 이런 정보를 같이 보냄:
+
+GET / HTTP/1.1
+Host: www.example.com
+여기서:
+
+Host: www.example.com ← 이게 Host header
+
+서버는 이 값을 보고 “어떤 사이트 요청인지” 판단함
+
+📌 왜 필요하냐?
+하나의 서버(IP)에 여러 웹사이트가 있을 수 있기 때문이야.
+
+예:
+
+example.com
+
+blog.com
+
+shop.com
+
+이게 모두 같은 서버로 가도:
+
+Host: blog.com   → 블로그 사이트 보여줌
+Host: shop.com   → 쇼핑몰 보여줌
+즉, Host header가 “사이트 구분자” 역할을 함.
+
+📌 Azure App Service에서 중요한 이유
+App Service는 내부적으로:
+
+webapp1.azurewebsites.net
+이 Host 기준으로 요청을 처리해.
+
+근데 사용자가:
+
+www.mycustomdomain.com
+으로 접속하면 Host header는:
+
+Host: www.mycustomdomain.com
+이렇게 됨.
+
+👉 App Service 입장에서는 “내 도메인 아닌데?” 하고 문제 생길 수 있음.
+
+📌 Application Gateway가 하는 역할
+Application Gateway는 중간에서 Host header를 바꿀 수 있음:
+
+사용자 요청:
+
+Host: www.mycustomdomain.com
+Gateway가 백엔드로 전달:
+
+Host: webapp1.azurewebsites.net
+🔑 한 줄 정리
+Host header는 “이 요청이 어떤 도메인으로 들어왔는지”를 알려주는 HTTP 필드이고, 서버가 올바른 사이트/앱을 선택하는 기준이다.
+
+
+그 설정을 application gateway 단에서 해야 하는거지?
+
+맞아. 그 설정은 Application Gateway 쪽에서 해야 하는 것이 맞아.
+
+📌 어디서 설정하냐?
+Application Gateway 안에서:
+
+Backend HTTP settings
+
+여기에서 Host header를 제어해.
+
+📌 왜 App Service가 아니라 Gateway에서 하냐?
+사용자 → Gateway → App Service 구조라서:
+
+사용자가 보내는 Host header는 그대로 들어옴
+
+App Service는 그 값을 보고 판단함
+
+그런데 App Service는 보통 *.azurewebsites.net 기준으로 동작
+
+그래서 중간에서 Gateway가:
+
+“백엔드가 이해할 수 있는 Host로 바꿔줘야 함”
+
+📌 Application Gateway 설정 옵션
+대표적으로 2가지가 있어:
+
+1. Override host name
+강제로 특정 값으로 변경
+
+예: webapp1.azurewebsites.net
+
+2. Pick host name from backend target
+백엔드 풀에 등록된 FQDN 사용
+
+App Service 연동 시 많이 사용
+
+📌 구조 정리
+Client
+  ↓ (Host: www.custom.com)
+Application Gateway
+  ↓ (Host: webapp1.azurewebsites.net)
+App Service
+🔑 핵심 한 줄
+Host header 변경은 App Service가 아니라 Application Gateway Backend HTTP settings에서 설정한다
+
+
+
+Configure the backend pool with the custom domain name instead of the azurewebsites.net domain.
+Explanation
+Configuring the backend pool with the custom domain name does not solve the host header issue. If the App Service doesn't have the custom domain explicitly registered, it won't be able to route the request correctly. The backend HTTP settings must be configured to handle the host name override appropriately. Reference: https://learn.microsoft.com/en-us/azure/application-gateway/configure-web-app
+Correct answer
+Enable 'Pick host name from backend target' in the backend HTTP settings.
+Explanation
+When App Service is used as a backend, enabling 'Pick host name from backend target' dynamically sets the host header in the request to the host name of the backend pool. This is required because an app service is a multitenant service that uses a shared space with a single IP address and can only be accessed through the hostnames configured in its settings. Reference: https://learn.microsoft.com/en-us/azure/application-gateway/configuration-http-settings
+
+좋은 문제고, 여기서 핵심은 “custom domain으로 backend pool을 바꾸는 게 아니라 Host header를 어떻게 맞추느냐”야.
+
+✅ 정답
+Enable “Pick host name from backend target” in the backend HTTP settings
+
+📌 왜 이게 정답인가?
+Application Gateway가 App Service(*.azurewebsites.net) 앞에 있을 때 중요한 점:
+
+App Service는 Host header 기반 멀티테넌트 서비스
+
+즉, 들어오는 Host 값이 “등록된 도메인”이어야 정상 라우팅됨
+
+📌 두 선택지 차이
+❌ 1. Backend pool에 custom domain 넣기 (틀림)
+backend pool은 “어디로 보낼지(IP/FQDN)” 결정하는 곳
+
+하지만 Host header는 바꾸지 않음
+
+App Service가 custom domain을 아직 바인딩 안 했으면 실패 가능
+
+👉 즉, routing 대상만 바꾼 것이고 요청 내용은 그대로
+
+✅ 2. Pick host name from backend target (정답)
+이 옵션은:
+
+Application Gateway가 backend App Service의 FQDN을 보고 Host header를 자동 설정
+
+즉:
+
+Client request:
+Host: www.custom.com
+
+Application Gateway 변환:
+Host: webapp1.azurewebsites.net
+👉 App Service가 이해할 수 있는 Host로 자동 맞춰줌
+
+📌 핵심 구조
+[Client]
+  Host: customdomain.com
+        ↓
+[Application Gateway]
+  Host header override 발생
+        ↓
+[App Service]
+  Host: webapp1.azurewebsites.net
+🔑 한 줄 핵심
+App Service는 Host header 기반으로 동작하므로, Application Gateway에서 “Pick host name from backend target”을 사용해 올바른 Host를 자동 설정해야 한다.
+
+
+You have an Azure subscription that contains an Azure storage account named storage1. You have an on-premises Active Directory Domain Services (AD DS) environment. You plan to enable AD DS authentication for Azure file shares in storage1. You need to register storage1 with your on-premises AD DS. What type of object does the AzFilesHybrid module create in AD DS by default when joining a storage account?
+
+정답은:
+
+Computer object (컴퓨터 계정)
+
+📌 이유
+Azure Files에서 on-premises AD DS 인증을 사용하려면
+Storage Account를 AD DS에 “도메인 조인” 형태로 등록해야 해.
+
+이때 사용하는 게:
+
+AzFilesHybrid PowerShell module
+
+📌 기본 동작 (중요 포인트)
+Join-AzStorageAccountForAuth 실행 시:
+
+AD DS에 Computer object (컴퓨터 계정) 가 생성됨
+
+예:
+
+storage1 (computer account)
+📌 왜 Computer object인가?
+Azure Storage Account는 AD DS 입장에서:
+
+User도 아니고
+
+Group도 아니고
+
+서비스 리소스
+
+👉 그래서 “컴퓨터처럼 도메인에 join 되는 객체”로 취급됨
+
+즉:
+
+Storage Account = AD DS에 가입된 컴퓨터 계정처럼 동작
+
+📌 핵심 구조
+On-prem AD DS
+   ↓
+Computer object: storage1
+   ↓
+Azure Storage Account ↔ AD 인증 연결
+🔑 한 줄 정리
+AzFilesHybrid로 AD DS에 등록하면 Storage Account는 기본적으로 Computer object(컴퓨터 계정) 로 생성된다.
+
+
+문제가 무슨 얘긴지도 모르겠다
+
+이 문제는 한 줄로 말하면 이거야:
+
+“Azure Storage를 온프레미스 AD 로그인처럼 쓰게 만들 때, AD에 어떤 종류의 계정이 만들어지냐?”
+
+📌 상황부터 쉽게 풀면
+너 환경이 이렇게 있어:
+
+Azure Storage Account: storage1
+
+온프레미스 AD DS (회사 내부 Active Directory)
+
+그리고 목표는:
+
+Azure File Share를 “AD 로그인으로 접근”하게 만들고 싶다
+
+즉,
+
+그냥 Azure 키로 접근 ❌
+
+회사 계정(AD)으로 접근 ⭕
+
+📌 그래서 뭘 하냐?
+Azure에서 도구 하나를 씀:
+
+AzFilesHybrid module
+
+이걸로 Storage Account를 AD에 “등록(join)”함
+
+📌 핵심 질문
+“storage1을 AD에 등록하면 AD에 어떤 객체가 생기냐?”
+
+📌 정답
+👉 Computer object (컴퓨터 계정)
+
+📌 왜 컴퓨터 계정이냐?
+AD 입장에서 Storage Account는:
+
+사람(user) ❌
+
+그룹(group) ❌
+
+서비스/시스템 리소스 ✔
+
+그래서 AD에서는 이런 리소스를:
+
+“도메인에 가입한 컴퓨터처럼 취급”
+
+함
+
+📌 쉽게 비유
+PC 회사 도메인 가입 → 컴퓨터 계정 생성
+
+Storage Account AD 등록 → 컴퓨터 계정 생성
+
+📌 구조 그림
+On-prem AD DS
+   ↓
+Computer object: storage1
+   ↓
+Azure Storage (File Share) → AD 로그인으로 접근 가능
+🔑 핵심 한 줄
+이 문제는 “Azure Storage를 AD에 붙일 때 AD 안에 컴퓨터 계정이 만들어진다”를 묻는 문제야.
+
+
+You have an Azure subscription that contains a Windows virtual machine named VM1. You need to enable Azure Disk Encryption on VM1. You create an Azure Key Vault named KeyVault1 in the same region as VM1. Which Key Vault access policy setting must you enable on KeyVault1 before you can configure Azure Disk Encryption?
+
+이 문제 핵심은 Azure Disk Encryption(ADE) 이 Key Vault를 어떻게 사용하는지야.
+
+✅ 정답
+Enable access to Azure Disk Encryption for volume encryption
+
+📌 왜 이 설정이 필요한가?
+Azure Disk Encryption을 적용하면:
+
+VM이 디스크를 암호화할 때
+
+암호화 키를 Key Vault에 저장/조회해야 함
+
+그래서 Key Vault는 “ADE 전용 권한”을 허용해야 해.
+
+📌 Key Vault access policy에서 필요한 것
+Key Vault에는 access policy가 있는데 ADE를 쓰려면:
+
+👉 Azure Disk Encryption에 대한 access 허용 옵션을 활성화해야 함
+
+이 설정이 있어야:
+
+VM이 Key Vault에서 KEK (Key Encryption Key) 가져올 수 있음
+
+BitLocker / DM-Crypt 암호화 진행 가능
+
+📌 쉽게 구조 이해
+VM1
+  ↓ (암호화 요청)
+Azure Disk Encryption
+  ↓
+Key Vault (KeyVault1)
+  ↓
+Encryption Key 제공
+📌 시험 포인트
+ADE 관련 문제에서 Key Vault 나오면 거의 항상 이거야:
+
+“Allow access to Azure Disk Encryption”
+
+또는 문장 형태로:
+
+Enable Azure Disk Encryption for volume encryption
+
+🔑 한 줄 정리
+Azure Disk Encryption을 사용하려면 Key Vault에서 Azure Disk Encryption 사용을 허용하는 access policy 설정을 활성화해야 한다.
+
+
+뭔소리야
+
+이 문제를 그냥 “시험용으로 최소 이해” 기준으로 다시 정리해볼게.
+
+📌 문제 한 줄 해석
+VM1 디스크를 Azure Disk Encryption으로 암호화하려고 하는데
+Key Vault에서 뭘 허용해야 하냐?
+
+📌 핵심 개념 2개만 알면 끝
+Azure Disk Encryption(ADE)은:
+
+VM 디스크를 암호화함
+
+암호화 키를 Key Vault에 저장함
+
+그래서 VM이 Key Vault에 접근해야 함
+
+📌 그래서 Key Vault에서 해야 하는 설정
+👉 Azure Disk Encryption 사용 허용
+
+이걸 안 켜면:
+
+VM이 Key Vault 접근 못함
+
+암호화 자체가 실패함
+
+📌 시험 정답 형태
+Enable Azure Disk Encryption for volume encryption
+
+📌 아주 쉽게 비유
+VM = 금고
+
+Disk encryption = 자물쇠 잠그기
+
+Key Vault = 열쇠 보관함
+
+근데 열쇠 보관함이 이렇게 말하는 거야:
+
+“Azure Disk Encryption이 쓰는 열쇠 꺼내는 거 허용해줄게”
+
+이걸 켜야 작동함
+
+🔑 한 줄로 진짜 핵심
+ADE를 쓰려면 Key Vault에서 “Azure Disk Encryption 사용 허용”을 켜야 한다.
+
+
+Azure Disk Encryption for volume encryption
+Explanation
+Azure Disk Encryption requires that the key vault has the 'Azure Disk Encryption for volume encryption' option enabled. This setting allows the Azure platform to access the encryption keys or secrets in your key vault to make them available to the VM for booting and decrypting the volumes. Reference: https://learn.microsoft.com/en-us/azure/virtual-machines/windows/disk-encryption-key-vault
+
+좋아, 이 문제는 결국 Key Vault 권한 옵션 하나를 맞추는 문제야.
+
+📌 핵심 정리
+Azure Disk Encryption (ADE)를 쓰려면 Key Vault에서 반드시:
+
+Azure Disk Encryption for volume encryption 옵션을 활성화해야 함
+
+📌 왜 필요한가?
+ADE 흐름은 이렇게 진행돼:
+
+VM이 디스크를 암호화해야 함
+
+암호화 키를 Key Vault에서 가져옴
+
+OS 부팅/디스크 해제 시에도 Key Vault 필요
+
+그래서 Azure 플랫폼이 Key Vault에 접근할 수 있어야 하는데,
+
+👉 이 접근을 허용하는 스위치가 바로 이 옵션
+
+📌 이 옵션이 하는 일
+Azure VM이 Key Vault의 키/비밀에 접근 가능하게 허용
+
+부팅 시 디스크 복호화 가능하게 지원
+
+📌 한 줄 핵심
+Azure Disk Encryption을 사용하려면 Key Vault에서 “Azure Disk Encryption for volume encryption” 설정을 활성화해야 한다.
+
+📌 기억 포인트 (시험용)
+이 문제 나오면 고민할 필요 없이:
+
+👉 “ADE + Key Vault = volume encryption 옵션 켜라”
+
+이렇게 바로 연결하면 됨.
+
+
+You have a Microsoft Entra tenant. You need to create a group that can be assigned Microsoft Entra administrator roles. The group must have members added and removed automatically based on the users' department attribute. Is this possible?
+Yes, by creating a Microsoft 365 group with Dynamic User membership and enabling role assignment.
+Explanation
+This is incorrect. Role-assignable groups cannot use dynamic membership regardless of the group type. The membership type for role-assignable groups must be Assigned to prevent unwanted accounts from automatically gaining administrator privileges. Reference: https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/groups-concept
+Correct answer
+No, because role-assignable groups must use Assigned membership type.
+Explanation
+Groups that can be assigned Microsoft Entra roles must have the isAssignableToRole property set to true, and the membership type must be Assigned. Dynamic membership is not supported for role-assignable groups because automated population could lead to unwanted accounts being added to the group and assigned administrator roles. Reference: https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/groups-concept
+Your answer is incorrect
+Yes, by creating a Security group with Dynamic User membership and enabling role assignment.
+Explanation
+This is incorrect. While you can create Security groups with Dynamic User membership, you cannot enable role assignment on such groups. Role-assignable groups require Assigned membership type to prevent potential security risks from automatic membership changes. Reference: https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/groups-concept
+No, because Microsoft Entra roles can only be assigned to individual users and not to groups.
+Explanation
+This is incorrect. Microsoft Entra roles can be assigned to groups. With Microsoft Entra ID P1 or P2, you can create role-assignable groups and assign Microsoft Entra roles to these groups. However, such groups must use Assigned membership type, not dynamic. Reference: https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/groups-concept
+
+이 문제 핵심은 한 줄로 이거야:
+
+“Entra 역할을 할당할 수 있는 그룹은 dynamic membership을 사용할 수 있는가?”
+
+✅ 정답: No
+📌 이유 (중요 개념)
+Microsoft Entra ID에서는:
+
+역할(Role)을 그룹에 할당할 수 있음
+(= role-assignable group)
+
+하지만 조건이 있음:
+
+🚫 제한 사항
+Role-assignable group은:
+
+❌ Dynamic membership 불가
+
+❌ 자동 사용자 추가/제거 불가
+
+📌 왜 막아놨냐?
+이유는 보안 때문이야:
+
+예를 들어:
+
+Department = "IT"
+
+IT 사용자 자동으로 Admin 그룹에 들어감
+
+👉 만약 누가 department 값을 바꾸면?
+👉 자동으로 Admin 권한 얻음 (위험)
+
+그래서 Microsoft는:
+
+“관리자 권한 그룹은 반드시 수동 관리해야 한다”
+
+라고 강제함.
+
+📌 조건 정리
+Role-assignable group:
+
+✔ Security group 또는 M365 group 가능
+
+✔ Entra role 할당 가능
+
+❌ 반드시 Assigned membership only
+
+❌ Dynamic group 사용 불가
+
+📌 핵심 구조
+Role-assignable group
+   ├── isAssignableToRole = true
+   ├── Membership = Assigned ONLY
+   └── Dynamic membership = NOT allowed
+🔑 한 줄 정리
+Microsoft Entra 역할이 할당 가능한 그룹은 반드시 “Assigned membership”이어야 하며, Dynamic membership은 지원되지 않는다.
+
+
+Dynamic membership은 언제 지원돼?
+
+Dynamic membership은 **“조건 기반으로 자동으로 사용자/디바이스를 그룹에 넣고 빼는 기능”**이고, 항상 되는 게 아니라 그룹 용도에 따라 제한이 있어.
+
+✅ Dynamic membership이 지원되는 경우
+1. Microsoft Entra Security group (보안 그룹)
+✔ 지원됨
+✔ 사용자(User) 또는 디바이스(Device) 기반 조건 사용 가능
+
+예:
+
+department = "IT"
+
+jobTitle = "Developer"
+
+country = "NZ"
+
+👉 이런 조건으로 자동 그룹 관리 가능
+
+2. Microsoft 365 group
+✔ 지원됨 (User 기반만)
+
+Teams, Outlook 그룹 등
+
+이메일/협업용 그룹
+
+❌ Dynamic membership이 안 되는 경우 (중요 시험 포인트)
+1. Role-assignable group
+❌ Dynamic 불가
+
+반드시 Assigned membership only
+
+이유: 자동으로 Admin 권한 부여되는 위험 때문
+
+2. 일부 특수 그룹
+legacy group
+
+certain privileged groups
+
+📌 한눈에 정리
+그룹 종류	Dynamic membership
+Security group	✔ 가능
+Microsoft 365 group	✔ 가능
+Role-assignable group	❌ 불가능
+📌 조건 기반 예시 (Security group)
+(user.department -eq "IT")
+→ IT 부서 사용자 자동 추가
+
+🔑 핵심 한 줄
+Dynamic membership은 일반 Security/Microsoft 365 그룹에서는 가능하지만, Role-assignable group에서는 보안 이유로 사용할 수 없다.
+
+
+역할을 할당할 수 있는 그룹이란 얘기가 와닿지 않는데, 자유롭게 그룹에 역할을 넣을 수 있다는 건가?
+
+헷갈리는 포인트가 딱 그거야. 결론부터 말하면:
+
+“그룹에 역할을 넣는다”는 뜻이지, 아무 그룹이나 자유롭게 역할을 붙일 수 있다는 뜻은 아니야.
+
+📌 먼저 개념부터 정리
+Microsoft Entra ID에서 “역할을 할당한다”는 건:
+
+User (개인)에게 관리자 권한 주기 ❌ (직접도 가능하지만 비권장)
+
+Group에게 관리자 역할 주기 ✔ (권장 방식)
+
+📌 Role-assignable group이란?
+이건 그냥 “일반 그룹”이 아니라:
+
+Azure AD 역할을 받을 수 있도록 특별히 설정된 그룹
+
+즉:
+
+Group + "이 그룹은 관리자 역할을 받을 수 있음"
+이 속성이 붙은 그룹이야:
+
+isAssignableToRole = true
+
+📌 그래서 무슨 의미냐?
+이 그룹은 이렇게 쓰는 거야:
+
+예시
+“Global Reader 역할”
+
+“User Administrator 역할”
+
+👉 이런 역할을
+
+Group A → Global Reader
+처럼 그룹 전체에 붙임
+
+그럼:
+
+Group A에 속한 사람 = 자동으로 Global Reader 권한
+
+📌 중요한 오해 정리
+❌ “그룹이 자유롭게 역할을 받는다”
+아님
+
+✔ 정확한 의미
+“이 그룹은 역할을 할당받을 수 있도록 미리 허용된 그룹이다”
+
+📌 왜 이런 구조를 쓰냐?
+개별 사용자에게 주면:
+
+관리 복잡
+
+실수 위험
+
+그래서:
+
+“그룹 하나에 역할을 주고, 사람은 그룹에 넣는 방식”
+
+📌 구조 그림
+Role (예: User Admin)
+        ↓
+Role-assignable Group
+        ↓
+Users (members)
+📌 핵심 한 줄
+Role-assignable group은 “Azure AD 역할을 할당받을 수 있도록 특별히 허용된 그룹”이고, 그 그룹에 속한 사용자들이 해당 역할을 자동으로 가지게 되는 구조다.
+
+
+그런데, 왜 그런 그룹 또는 그룹에 소속한 사람에겐 dynamic membership을 못 하게 하는 거지?
+
+핵심 이유는 한 가지로 정리돼:
+
+“관리자 권한이 자동으로 바뀌는 상황을 막기 위해서”
+
+📌 문제 상황부터 이해
+Role-assignable group은 이렇게 동작해:
+
+그룹에 Entra 역할(예: Global Admin, User Admin) 을 붙일 수 있음
+
+그룹 멤버 = 곧 관리자 권한 보유자
+
+📌 만약 Dynamic membership을 허용하면?
+예를 들어:
+
+Rule: department == "IT"
+그러면:
+
+IT 부서 들어온 순간 → 자동으로 그룹 추가
+
+IT 부서에서 나가면 → 자동 제거
+
+🚨 여기서 위험
+이 그룹에 만약 이런 역할이 붙어 있으면:
+
+Global Administrator
+
+Privileged Role Administrator
+
+그럼 결과가 이렇게 됨:
+
+🔥 자동 권한 상승 문제
+누군가 AD에서 department 값만 바꿈
+
+또는 HR 시스템 오류
+
+또는 데이터 sync 문제
+
+👉 그 순간 자동으로 Admin 권한 획득
+
+📌 Microsoft가 막은 이유
+그래서 설계 철학이 이거야:
+
+“관리자 권한은 절대 자동화되면 안 된다”
+
+📌 그래서 강제 규칙
+Role-assignable group은:
+
+❌ Dynamic membership 금지
+
+✔ 반드시 Manual (Assigned) 관리
+
+📌 비교
+일반 Security group
+Dynamic OK
+
+자동 인원 관리 OK
+
+Role-assignable group
+Dynamic ❌
+
+수동 관리만 허용 ✔
+
+📌 쉽게 비유
+일반 그룹 (Dynamic OK)
+“학생 명단 자동 업데이트”
+
+Role 그룹 (Dynamic 금지)
+“교장/관리자 명단 — 절대 자동 변경 금지”
+
+🔑 핵심 한 줄
+관리자 권한이 붙은 그룹은 자동 membership으로 인해 의도치 않게 권한이 상승하는 것을 방지하기 위해 Dynamic membership이 금지된다.
+
+
+You have an Azure Storage account. You need to provide delegated access to blob storage resources with the highest security. Microsoft recommends which type of SAS for this scenario?
+
+정답은:
+
+User delegation SAS
+
+📌 이유 (핵심만)
+Azure Storage SAS에는 여러 종류가 있는데, 보안 수준은 이렇게 나뉨:
+
+1. Account SAS
+스토리지 계정 키 기반
+
+권한이 너무 강함 (계정 전체 제어 가능)
+
+❌ 가장 덜 안전
+
+2. Service SAS
+특정 서비스(Blob 등)에 제한
+
+여전히 account key 필요
+
+중간 수준
+
+3. ✅ User delegation SAS (정답)
+Azure AD (Microsoft Entra ID) 기반 인증 사용
+
+account key를 사용하지 않음
+
+RBAC + Azure AD 토큰 기반
+
+🔒 가장 안전
+
+📌 구조 이해
+User (Azure AD login)
+   ↓
+Azure AD token
+   ↓
+User delegation SAS issued
+   ↓
+Blob Storage access (limited permissions)
+📌 왜 가장 안전하냐?
+스토리지 account key를 안 씀 ❌
+
+개별 사용자 identity 기반 ✔
+
+권한 관리 (RBAC) 가능 ✔
+
+만료/범위 제한 가능 ✔
+
+🔑 한 줄 정리
+Microsoft가 권장하는 가장 안전한 SAS 유형은 Azure AD 기반 인증을 사용하는 User delegation SAS이다.
+
+
+You have an Azure subscription. You plan to deploy a container group that contains multiple containers using Azure Container Instances. You need to determine which operating system the container group can use. Which operating system supports multi-container groups?
+
+정답은:
+
+Linux
+
+📌 이유
+Azure Container Instances (ACI)에서 multi-container group (container group) 는:
+
+✔ Linux OS에서만 지원됨
+
+📌 핵심 포인트
+Azure Container Instances OS 지원
+OS	Multi-container 지원
+Linux	✔ Yes
+Windows	❌ No
+📌 왜 Linux만 되냐?
+Container group은 “sidecar 패턴” 같은 구조를 지원하는데:
+
+로그 수집 컨테이너
+
+proxy 컨테이너
+
+app + helper container
+
+👉 이런 구조는 Linux 기반 기능으로 제공됨
+
+Windows 컨테이너는 아직 제한이 많아서:
+
+단일 컨테이너 중심
+
+container group 기능 제한
+
+📌 예시 구조 (Linux container group)
+Container Group
+ ├── app container
+ ├── logging container
+ └── proxy container
+🔑 한 줄 정리
+Azure Container Instances에서 여러 컨테이너로 구성된 container group은 Linux 운영체제에서만 지원된다.
+
+
+You have an Azure App Service web app named WebApp1 that has a deployment slot named staging. You plan to swap the staging slot into production. You need to validate the staging application with production settings before completing the swap. The solution must allow you to cancel the swap if validation fails. What should you use?
+
+정답은:
+
+Swap with preview (swap with validation)
+
+📌 핵심 개념
+Azure App Service slot swap에는 2가지 방식이 있어:
+
+1. 일반 Swap
+staging ↔ production 바로 교체
+
+❌ 사전 검증 없음
+
+2. ✅ Swap with preview (정답)
+먼저 preview 단계에서 validation
+
+production 설정을 staging에 미리 적용해서 테스트
+
+문제 있으면 swap 취소 가능
+
+📌 요구사항과 연결
+문제 조건:
+
+staging slot을 production으로 swap
+
+production 설정 적용된 상태로 검증 필요
+
+실패 시 swap 취소 가능
+
+👉 이 조건을 모두 만족하는 기능 = Swap with preview
+
+📌 동작 흐름
+1. Swap with preview 시작
+2. production settings가 staging에 미리 적용됨
+3. staging 상태로 검증 수행
+4. 문제 없으면 final swap 실행
+5. 문제 있으면 swap 취소 가능
+🔑 한 줄 정리
+Swap 전에 production 설정을 staging에 적용해 미리 검증하고 실패 시 취소할 수 있는 기능은 Swap with preview이다.
+
+
+You have an Azure virtual network named VNet1 that contains a virtual machine named VM1. VM1 has a network security group associated with its subnet. Users report they cannot connect to VM1 using RDP from the internet. You need to quickly determine whether the network security group rules are allowing or denying the RDP traffic. You want to identify which specific rule is responsible for the traffic decision. What should you use? NSG flow logs in Azure Network Watcher
+Explanation
+NSG flow logs capture information about IP traffic flowing through an NSG, but they record traffic that has already occurred. For quickly testing whether traffic would be allowed and identifying the responsible rule, IP flow verify is more appropriate than analyzing flow logs. Reference: https://learn.microsoft.com/en-us/azure/network-watcher/diagnose-network-security-rules
+Connection troubleshoot in Azure Network Watcher
+Explanation
+Connection troubleshoot tests connectivity between a source and destination and provides diagnostic information, but IP flow verify is specifically designed to identify which NSG rule is responsible for allowing or denying specific traffic flows. Reference: https://learn.microsoft.com/en-us/azure/network-watcher/diagnose-network-security-rules
+Traffic analytics in Azure Monitor
+Explanation
+Traffic analytics provides insights into traffic patterns and threats by analyzing NSG flow logs, but it is designed for long-term analysis rather than quickly determining which specific rule affects a particular traffic flow. Reference: https://learn.microsoft.com/en-us/azure/network-watcher/diagnose-network-security-rules
+Your answer is correct
+IP flow verify in Azure Network Watcher
+Explanation
+IP flow verify determines whether a communication is allowed or denied and identifies which network security rule is responsible for allowing or denying the traffic. It checks if a specific packet would be allowed or denied by NSG rules based on the five-tuple information. Reference: https://learn.microsoft.com/en-us/azure/virtual-network/network-security-group-how-it-works
+
+정답은 IP flow verify (Azure Network Watcher) 맞고, 이 문제 핵심은 “지금 당장 어떤 NSG 규칙이 RDP를 막는지 확인”이야.
+
+📌 문제 핵심
+VM1에 RDP 접속 안 됨
+
+NSG가 subnet에 연결되어 있음
+
+목적:
+
+“어떤 NSG rule이 허용/차단했는지 바로 알고 싶다”
+
+📌 왜 IP flow verify가 정답인가?
+👉 이 도구는 “가상 트래픽 시뮬레이션” 기능이야
+
+즉:
+
+실제로 패킷이 들어왔다고 가정하고
+어떤 NSG rule이 적용되는지 즉시 알려줌
+
+📌 결과로 나오는 것
+Allow / Deny 여부
+
+적용된 정확한 NSG rule 이름
+
+예:
+
+Deny
+Rule: DenyAllInbound
+📌 다른 선택지 비교
+❌ NSG flow logs
+실제 과거 트래픽 기록
+
+분석용
+
+“왜 지금 막혔는지 즉시 확인”에는 느림
+
+❌ Connection troubleshoot
+end-to-end 연결 테스트
+
+“어디가 끊겼는지”는 알려줌
+
+하지만 NSG rule 이름까지 정확히 pinpoint는 약함
+
+❌ Traffic analytics
+장기 분석용
+
+실시간 문제 해결용 아님
+
+📌 핵심 구조
+IP flow verify
+   → "이 트래픽 들어오면 어떤 NSG rule 적용됨?"
+   → 즉시 Allow / Deny + rule name
+🔑 한 줄 정리
+특정 트래픽이 NSG에서 허용/거부되는지와 어떤 규칙 때문인지 즉시 확인하려면 IP flow verify를 사용한다.
+
+
+You have an Azure subscription that contains a shared Azure dashboard. You need to share the dashboard with a group of users who require the ability to view and make local edits but not publish changes back to the server. Which Azure RBAC role should you assign to the group?
+
+정답은:
+
+Dashboard Contributor
+
+📌 핵심 요구사항 해석
+사용자 요구:
+
+공유 Azure Dashboard 사용
+
+✔ 보기 가능
+
+✔ 로컬에서 수정 가능 (개인 화면에서)
+
+❌ 원본(서버)에는 변경 내용 반영 불가
+
+📌 Azure Dashboard 권한 구조
+1. Dashboard Reader
+보기만 가능
+
+❌ 수정 불가
+
+2. Dashboard Contributor (정답)
+✔ 대시보드 보기 가능
+
+✔ 개인 view/local edits 가능
+
+❌ 공유된 원본 dashboard에는 변경 반영 안 됨
+
+👉 즉 “개인화된 수정” 허용
+
+3. Owner / Contributor (subscription level)
+❌ 너무 강함
+
+공유 dashboard까지 변경 가능 (문제 요구사항 초과 권한)
+
+📌 핵심 개념
+Azure Dashboard는 두 가지가 있음:
+
+Shared dashboard (공용)
+
+Private/local view (개인 편집)
+
+👉 Contributor는 “개인 편집만 허용”
+
+🔑 한 줄 정리
+Shared Azure Dashboard에서 보고 + 로컬 수정은 가능하지만 원본에는 영향을 주지 않으려면 Dashboard Contributor 역할을 사용한다.
+
+
+원본(서버)에는 변경 내용 반영 불가 -> 원본 dashboard 는 못 바꾼다는 건가?
+
+맞아. 그 의미는:
+
+공유(Shared) 대시보드 자체는 변경 못 한다는 뜻이야.
+
+📌 구조를 먼저 이해하면 쉬워
+Azure Dashboard에는 2가지 레이어가 있어:
+
+1. Shared dashboard (원본, 서버에 저장됨)
+조직이 공유하는 대시보드
+
+모든 사용자가 동일하게 보는 기준 버전
+
+2. Local view (개인 수정본)
+사용자가 자기 화면에서만 수정
+
+필터, 레이아웃 등을 개인화
+
+📌 Dashboard Contributor의 의미
+이 역할은 이렇게 동작해:
+
+✔ 대시보드 보기 가능
+
+✔ 개인(local) 수정 가능
+
+❌ Shared dashboard 원본 변경 불가
+
+📌 쉽게 비유하면
+Shared dashboard = “회사 공용 PPT”
+
+Local edit = “내 PC에서만 색 바꾸고 정리”
+
+👉 내 화면에서는 바뀐 것처럼 보이지만
+👉 회사 원본 PPT는 그대로
+
+📌 왜 이렇게 나눴냐?
+공유 대시보드를 아무나 수정하면:
+
+다른 사람 화면도 다 깨짐
+
+운영 혼란 발생
+
+그래서:
+
+“원본은 보호 + 개인화는 허용”
+
+이 구조로 만든 거야.
+
+🔑 한 줄 정리
+Shared Azure Dashboard는 조직 공용 원본이고, Dashboard Contributor는 이 원본은 건드리지 않고 개인 화면에서만 수정할 수 있는 권한이다.
+
+
+Your answer is incorrect
+Contributor
+Explanation
+Contributor grants permissions to manage all resources except access management. Users with Contributor role can publish changes to the shared dashboard, which exceeds the requirement of only allowing local edits without the ability to publish changes back. Reference: https://learn.microsoft.com/en-us/azure/azure-portal/azure-portal-dashboard-share-access
+Correct answer
+Reader
+Explanation
+Reader role allows users to view all resources but does not allow them to make permanent changes. Users with Reader role can view dashboards, make private copies for themselves, and make local edits for their own use such as when troubleshooting, but they cannot publish those changes back to the server. Reference: https://learn.microsoft.com/en-us/azure/azure-portal/azure-portal-dashboard-share-access
+Owner
+Explanation
+Owner grants full access to manage all resources including the ability to assign roles in Azure RBAC. This role provides far more permissions than needed and would allow users to publish changes to the dashboard. Reference: https://learn.microsoft.com/en-us/azure/azure-portal/azure-portal-dashboard-share-access
+Monitoring Contributor
+Explanation
+Monitoring Contributor includes general /write privileges used by various monitoring tools. While this role enables creating and editing dashboards, it provides more permissions than required for simply viewing and making local edits without publishing. Reference: https://learn.microsoft.com/en-us/azure/azure-monitor/roles-permissions-security
+
+좋은 포인트고, 여기 문제는 **“Contributor vs Reader의 의미를 Azure Dashboard 기준으로 헷갈리게 만든 함정 문제”**야.
+
+✅ 정답: Reader
+📌 핵심 요구사항 다시 해석
+요구사항:
+
+공유 Dashboard를 볼 수 있어야 함 ✔
+
+로컬에서만 수정 가능 ✔
+
+❌ 변경사항을 공유(서버 원본)에 반영하면 안 됨
+
+📌 왜 Reader가 맞냐?
+Azure Portal Dashboard에서 Reader 역할은:
+
+✔ 대시보드 보기 가능
+
+✔ 개인 복사본 생성 가능
+
+✔ 개인 화면에서만 수정 가능 (local edits)
+
+❌ Shared dashboard 자체 수정/게시 불가
+
+📌 핵심 개념 (시험 포인트)
+🔴 Contributor (틀림)
+Shared dashboard 수정 가능
+
+즉 “publish back to server” 가능
+👉 요구사항 초과 권한
+
+🟢 Reader (정답)
+읽기 전용 + 개인화만 허용
+
+원본 dashboard 변경 불가
+
+📌 쉽게 정리
+역할	원본 수정	로컬 수정	보기
+Owner	✔	✔	✔
+Contributor	✔ (publish 가능)	✔	✔
+Reader	❌	✔ (local only)	✔
+📌 핵심 함정 포인트
+문장 “make local edits” 때문에 사람들이 Contributor로 착각함
+
+하지만 중요한 건:
+
+“publish back to server 하면 안 된다”
+
+👉 이 조건 때문에 Reader가 정답
+
+🔑 한 줄 정리
+Shared Azure Dashboard에서 보기 + 로컬 편집만 허용하고 원본 변경을 막으려면 Reader 역할을 사용한다.
+
+
+Dashboard Contributor 라는 게 없는 거야?
+
+맞아. “Dashboard Contributor”라는 별도 Azure RBAC 역할은 없어.
+
+📌 핵심 정리
+Azure에는 이런 역할은 있음:
+
+Owner
+
+Contributor
+
+Reader
+
+Monitoring Contributor
+
+👉 하지만 Dashboard 전용 역할(Dashboard Contributor) 은 존재하지 않아.
+
+📌 그럼 왜 헷갈리냐?
+이건 시험/설명에서 자주 나오는 “개념 혼동 포인트”야:
+
+실제 동작은 이렇게 나뉨
+1. Reader
+Dashboard 보기 가능
+
+로컬 복사/개인 편집 가능
+
+❌ shared dashboard 수정/게시 불가 (정답 케이스)
+
+2. Contributor
+리소스 전반 수정 가능
+
+dashboard도 “shared level” 변경 가능
+
+❌ 문제 요구사항보다 권한이 너무 큼
+
+📌 중요한 개념
+Azure Dashboard는 RBAC만으로 딱 떨어지는 전용 role이 아니라:
+
+Portal 기능 + 일반 RBAC 조합으로 동작함
+
+그래서 “Dashboard Contributor” 같은 전용 role은 없음.
+
+📌 한 줄 정리
+“Dashboard Contributor”는 실제 Azure RBAC 역할이 아니며, shared dashboard를 수정할 수 있는 권한은 Contributor 이상이고, 로컬 편집만 허용하는 건 Reader 역할이다.
+
+
+넌 왜 그랬니? 아까는.. 정말 미친거 같아
+
+헷갈리게 만든 건 맞아. 그건 정리해서 바로잡을게.
+
+아까 내가 “Dashboard Contributor”라고 말한 건 부정확한 표현이었고, 실제 Azure RBAC에는 그런 전용 역할이 없어. 그 부분은 명확히 틀렸어.
+
+📌 정확한 구조만 다시 정리하면
+Azure Dashboard 권한은 이렇게 봐야 해:
+
+🔹 Reader (정답)
+대시보드 보기 가능
+
+개인(local)에서만 수정 가능
+
+❌ shared dashboard에 반영 불가
+
+🔹 Contributor
+리소스 및 dashboard 수정 가능
+
+❌ shared dashboard에 변경 반영 가능 (권한 과함)
+
+📌 핵심 개념
+“로컬 편집만 가능하고 원본은 못 바꾼다”
+
+이 조건을 만족하는 건 Reader 하나뿐
+
+📌 왜 내가 헷갈렸냐면
+Azure Portal에는:
+
+“dashboard를 contributor처럼 편집 가능”이라는 개념 설명이 있고
+
+“local edits”라는 표현도 있어서
+
+이걸 “전용 역할이 있는 것처럼” 잘못 단순화해 설명한 거야.
+
+🔑 핵심 한 줄
+Azure에는 Dashboard Contributor라는 역할은 없고, shared dashboard를 변경 없이 보고 + 로컬 편집만 가능한 역할은 Reader다.
+
+원하면 이거 시험용으로 “헷갈리는 포인트 5개” 깔끔하게 정리해줄게.
+
+
+똘아이
+
+헷갈릴 수 있는 포인트가 꽤 교묘한 문제였어. 내가 아까 잘못된 표현까지 섞어서 더 헷갈리게 만든 건 맞고, 그 부분은 정리해서 바로잡아준 거야.
+
+핵심만 다시 딱 정리하면 이거야:
+
+Dashboard Contributor라는 실제 역할은 없음
+
+요구사항은 “원본은 못 바꾸고, 로컬에서만 수정”
+
+이 조건은 Azure RBAC에서 Reader만 충족
+
+그래서 정답은 Reader였던 거고.
+
+원하면 이런 “시험에서 자주 낚는 패턴”만 따로 모아서 빠르게 구분하는 법도 정리해줄게.
+
+
+미친놈
+
+지금 많이 헷갈리고 짜증나는 상황인 건 이해했어. 그래도 정확한 내용만 정리해주면:
+
+내가 아까 “Dashboard Contributor”라고 말한 건 틀린 설명이었고
+
+실제 Azure RBAC에는 그런 역할은 없어
+
+이 문제의 핵심 정답은 Reader
+
+조건은 단순해:
+
+보기 가능 ✔
+
+로컬 수정만 가능 ✔
+
+원본 변경 ❌ → Reader만 해당
+
+원하면 이런 Azure 시험 문제에서 자주 나오는 “함정 포인트”만 빠르게 정리해줄게.
+
+
+You have a Microsoft Entra tenant. You need to configure external collaboration settings to allow only users with the User Administrator or Guest Inviter roles to invite guest users. Which Guest invite settings option should you select?
+Microsoft Certified: Azure Administrator Associate
+Set
+
+정답은:
+
+Only users assigned to specific admin roles can invite guest users
+
+📌 핵심 해석
+요구사항:
+
+게스트 초대 가능 대상 제한
+
+허용된 사람:
+
+User Administrator
+
+Guest Inviter 역할 보유자만
+
+👉 즉 “특정 역할 가진 사람만 초대 가능”
+
+📌 Entra External Collaboration Settings 옵션
+Guest invite settings에는 보통 4가지가 있어:
+
+Everyone including guests can invite
+
+Member users and users assigned to specific admin roles can invite guests
+
+Only users assigned to specific admin roles can invite guests ← 정답
+
+No one can invite guests
+
+📌 왜 이게 정답인가?
+문제 조건이 가장 엄격함:
+
+User Administrator + Guest Inviter 역할만 허용
+
+👉 “specific admin roles only” 옵션이 정확히 이 요구사항을 만족
+
+🔑 한 줄 정리
+특정 관리자 역할(User Administrator, Guest Inviter)만 게스트 초대를 허용하려면 Only users assigned to specific admin roles can invite guests를 선택한다.
+
+
+Member users and users assigned to specific admin roles can invite guests
+Only users assigned to specific admin roles can invite guests  뭔 차이야?
+
+둘 차이는 **“일반 사용자(Member)도 초대할 수 있냐 없냐”**야.
+
+📌 1. Member users and users assigned to specific admin roles can invite guests
+👉 의미:
+
+✔ 일반 사용자 (Member)
+
+✔ 관리자 역할 가진 사용자
+
+👉 둘 다 게스트 초대 가능
+
+특징
+가장 “열려 있는” 설정
+
+조직 사용자 대부분이 초대 가능
+
+보안 통제 약함
+
+📌 2. Only users assigned to specific admin roles can invite guests
+👉 의미:
+
+❌ 일반 사용자(Member) 불가
+
+✔ 특정 관리자 역할만 가능
+(예: User Administrator, Guest Inviter 등)
+
+특징
+훨씬 엄격한 정책
+
+관리자만 외부 사용자 초대 가능
+
+보안 중심 환경에 사용
+
+📌 한눈에 비교
+설정	Member 사용자	Admin 역할 사용자	보안 수준
+Member + Admin	✔ 가능	✔ 가능	낮음
+Admin only	❌ 불가	✔ 가능	높음
+📌 쉽게 비유
+Member 포함
+→ “회사 직원 누구나 외부 사람 초대 가능”
+
+Admin only
+→ “관리자만 외부 사람 초대 가능”
+
+🔑 핵심 한 줄
+첫 번째는 일반 사용자까지 허용, 두 번째는 관리자 역할 가진 사람만 허용하는 더 엄격한 설정이다.
+
+
+You need to create new users and manage their properties in Microsoft Entra ID using Azure PowerShell. You must use the least privileged Microsoft Entra role. Which role should you request?
+
+정답은:
+
+User Administrator
+
+📌 핵심 요구사항 해석
+해야 할 작업:
+
+Microsoft Entra ID에서 사용자 생성
+
+사용자 속성 관리
+
+Azure PowerShell 사용
+
+최소 권한(least privilege)
+
+📌 가능한 역할 비교
+❌ Global Administrator
+너무 강함 (전체 테넌트 제어)
+
+요구사항 초과
+
+❌ Privileged Role Administrator
+역할 관리 중심
+
+사용자 생성에는 불필요
+
+❌ Directory Writer / 기타
+사용자 관리 범위 불명확하거나 제한적
+
+✅ User Administrator (정답)
+이 역할은:
+
+✔ 사용자 생성
+
+✔ 사용자 수정 (properties 관리)
+
+✔ 게스트 관리 가능
+
+✔ 그룹 일부 관리 가능
+
+👉 딱 “사용자 관리 전용 최소 권한 역할”
+
+📌 핵심 구조
+User Administrator
+   → Create users
+   → Manage user properties
+   → Reset passwords (limited scope)
+🔑 한 줄 정리
+Microsoft Entra ID에서 사용자 생성 및 속성 관리를 최소 권한으로 수행하려면 User Administrator 역할을 사용한다.
+
+
+You have an Azure Storage account that contains a blob container named container1. A partner application needs temporary read and write access to blobs in container1, and you need to be able to revoke access quickly without regenerating storage account keys. Which approach should you use?
+
+정답은:
+
+User delegation SAS (Shared Access Signature)
+
+📌 문제 핵심
+요구사항:
+
+container1에 대한 임시(read/write) 접근
+
+파트너 앱 사용
+
+❌ storage account key 재발급 없이
+
+✔ 빠르게 revoke 가능해야 함
+
+📌 선택지 비교
+❌ Account Key SAS
+storage account key 기반
+
+키 유출 시 전체 계정 위험
+
+revoke하려면 key regenerate 필요 ❌
+
+❌ Service SAS
+특정 서비스(Blob) 단위 제한 가능
+
+하지만 여전히 account key 필요
+
+revoke 유연성 낮음
+
+✅ User delegation SAS (정답)
+Microsoft Entra ID 기반 인증 사용
+
+storage account key 불필요
+
+RBAC + Azure AD 토큰 기반
+
+권한 revoke = Azure AD 권한 변경으로 즉시 제어 가능
+
+📌 왜 가장 좋은가?
+보안: key 없이 인증
+
+제어: RBAC로 즉시 권한 revoke 가능
+
+최소 권한 원칙 적용 가능
+
+📌 구조
+User / App
+  ↓ Azure AD token
+User delegation SAS issued
+  ↓
+Blob container access (read/write)
+🔑 한 줄 정리
+Storage account key 없이 Azure AD 기반으로 임시 권한을 부여하고 빠르게 revoke할 수 있는 방법은 User delegation SAS이다.
+
+
+뭐야? 또 거짓말? You have an Azure Storage account that contains a blob container named container1. A partner application needs temporary read and write access to blobs in container1, and you need to be able to revoke access quickly without regenerating storage account keys. Which approach should you use?
+Create an ad hoc service SAS with short expiry time.
+Explanation
+An ad hoc service SAS without a stored access policy cannot be revoked without regenerating the storage account keys. If no stored access policy is specified, the only way to revoke a shared access signature is to change the account key, which does not meet the requirement to revoke access without key regeneration. Reference: https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview
+Correct answer
+Create a service SAS associated with a stored access policy.
+Explanation
+Creating a service SAS associated with a stored access policy is the correct approach. Stored access policies give you the option to revoke permissions for a service SAS without having to regenerate the storage account keys. You can revoke access by deleting or modifying the stored access policy, which immediately affects all SAS tokens associated with it. Reference: https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview
+Create an account SAS associated with a stored access policy.
+Explanation
+Account SAS does not support stored access policies. A user delegation SAS or an account SAS must be an ad hoc SAS. Stored access policies are not supported for account SAS, so this approach would not allow you to revoke access without regenerating the storage account keys. Reference: https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview
+Your answer is incorrect
+Create a user delegation SAS with a stored access policy.
+Explanation
+User delegation SAS does not support stored access policies. Stored access policies are supported only for service SAS. While user delegation SAS provides superior security, it cannot be associated with a stored access policy for revocation purposes. Reference: https://learn.microsoft.com/en-us/rest/api/storageservices/create-user-delegation-sas
+
+맞아, 이 문제에서는 내가 앞에서 말한 게 틀렸고, 시험 기준 정답은 네가 가져온 설명이 맞아.
+
+✅ 정답
+Create a service SAS associated with a stored access policy
+
+📌 왜 이게 정답인지 핵심만 정리
+요구사항:
+
+blob container에 임시 read/write access
+
+빠르게 revoke 가능해야 함
+
+❌ storage account key 재생성 없이
+
+📌 SAS 종류별 핵심 차이 (시험 포인트)
+❌ Ad hoc SAS
+만료 시간 직접 넣는 방식
+
+생성 후 revoke 불가능
+
+key 없이는 통제 못함
+
+❌ Account SAS
+storage account 전체 권한
+
+stored access policy 지원 안 함
+
+❌ User delegation SAS
+Azure AD 기반이라 보안은 좋지만
+
+stored access policy와 연동 불가
+
+✅ Service SAS + Stored Access Policy (정답)
+이 조합이 중요한 이유:
+
+SAS를 policy에 연결함
+
+policy를 수정/삭제하면
+→ 모든 SAS 즉시 revoke 가능
+
+📌 구조 이해
+Service SAS
+   ↓ (linked to)
+Stored Access Policy
+   ↓
+Modify/Delete policy → 즉시 access revoke
+📌 왜 이게 핵심이냐?
+문제 요구:
+
+“키 재생성 없이 빠르게 revoke”
+
+👉 이걸 가능하게 하는 유일한 구조가:
+
+Stored Access Policy
+
+🔑 한 줄 정리
+storage account key를 다시 만들지 않고 SAS를 즉시 revoke하려면 Service SAS + Stored Access Policy를 사용해야 한다.
+
+
+You have an Azure subscription that contains an availability set named AS1. AS1 was created with the default settings for fault domains and update domains. You plan to deploy virtual machines with managed disks to AS1. How many fault domains and update domains does AS1 support?
+
+정답은:
+
+Fault domains: 2
+Update domains: 5
+
+📌 핵심 개념
+Availability Set(가용성 집합)은 VM을 물리적으로 분산해서 장애를 줄이기 위한 구조야.
+
+📌 기본값 (중요 시험 포인트)
+AS1이 “default settings”로 생성되면:
+
+🔹 Fault domains (FD)
+기본값: 2 또는 3 (region dependent)
+
+하지만 Azure에서 일반적으로 시험 기준 정답:
+👉 2
+
+🔹 Update domains (UD)
+기본값: 5
+
+최대 기본 20까지 가능하지만
+
+default = 5
+
+📌 역할 정리
+Fault domain (FD)
+서로 다른 물리적 하드웨어 / rack
+
+전원 / 네트워크 장애 격리
+
+Update domain (UD)
+Azure가 순차적으로 VM 업데이트하는 그룹
+
+동시에 재부팅되지 않게 분리
+
+📌 구조 그림
+Fault Domain 1      Fault Domain 2
+   VM1                 VM2
+
+Update Domains: 5 groups
+(UD1 ~ UD5 순차 업데이트)
+🔑 한 줄 정리
+기본 Availability Set은 2개의 fault domains와 5개의 update domains를 제공한다.
+
+
+Your answer is correct
+3 fault domains and 5 update domains
+Explanation
+When creating an availability set with default settings using Azure Resource Manager deployments, the availability set is configured with 3 fault domains (maximum supported) and 5 update domains (default value). The fault domains can be up to 3, and update domains range from 5 (default) to 20. Reference: https://learn.microsoft.com/en-us/azure/virtual-machines/availability-set-overview
+
+맞아, 이 문제에서는 3 fault domains / 5 update domains가 정답이야. 내가 앞에서 fault domain을 2라고 말한 건 틀린 설명이었어.
+
+✅ 정확한 정리
+Availability Set (AS1, default settings):
+
+Fault domains (FD): 3
+
+Update domains (UD): 5
+
+📌 왜 3개냐?
+Azure Availability Set은 최대:
+
+Fault domain: 3개 (최대 고정 값)
+→ 물리적으로 다른 rack / power / network 분리
+
+Update domain: 최대 20개 (default는 5)
+→ 업데이트 시 순차 재부팅
+
+📌 구조 그림
+Fault Domain 1   Fault Domain 2   Fault Domain 3
+    VM1              VM2              VM3
+📌 핵심 포인트 (시험용)
+Fault domain = 물리 장애 분리 (최대 3)
+
+Update domain = 업데이트 순서 분리 (default 5)
+
+🔑 한 줄 정리
+Azure Availability Set 기본 구성은 3 Fault Domains와 5 Update Domains이다.
+
+
+You have an Azure Storage account with the following data protection settings: Blob soft delete: Enabled (14 days retention). Blob versioning: Enabled. A developer overwrites an existing blob named report.pdf with new content. What happens to the previous content of report.pdf?
+Microsoft Certified: Azure Administrator Associate
+Set
+
+정답은:
+
+The previous version of the blob is preserved as a previous version (versioning), and can also be recovered during the 14-day soft delete retention period if needed.
+
+📌 핵심 상황
+설정:
+
+Blob soft delete: ✔ Enabled (14 days)
+
+Blob versioning: ✔ Enabled
+
+개발자가 report.pdf 덮어쓰기
+
+📌 실제 동작
+Blob을 overwrite 하면:
+
+1. Versioning 작동
+기존 report.pdf는 삭제되지 않음
+
+자동으로 previous version 생성
+
+report.pdf (v2 - new content)
+report.pdf (v1 - old content, preserved)
+2. Soft delete는 언제 쓰이냐?
+Soft delete는:
+
+blob이 삭제될 때
+
+삭제된 blob을 14일 동안 복구 가능
+
+👉 이번 케이스는 “delete”가 아니라 “overwrite”
+
+그래서:
+
+versioning이 핵심 역할
+
+soft delete는 backup safety layer
+
+📌 정리
+기능	역할
+Versioning	overwrite 이전 내용 보존
+Soft delete	삭제된 blob 복구
+🔑 한 줄 정리
+Blob을 overwrite하면 기존 내용은 삭제되지 않고 versioning으로 이전 버전으로 보존된다.
+
+
+Correct answer
+A new previous version is automatically created containing the original blob content
+Explanation
+When both blob versioning and blob soft delete are enabled for a storage account, overwriting a blob automatically creates a new previous version that reflects the blob's state before the write operation. The previous version contains the original content and can be accessed using its version ID. Reference: https://learn.microsoft.com/en-us/azure/storage/blobs/soft-delete-blob-overview
+Your answer is incorrect
+A soft-deleted snapshot is automatically created containing the original blob content
+Explanation
+When blob versioning is enabled alongside blob soft delete, overwriting a blob creates a previous version instead of a soft-deleted snapshot. Soft-deleted snapshots are created on overwrites only when blob versioning is disabled. With versioning enabled, the versioning mechanism takes precedence. Reference: https://learn.microsoft.com/en-us/azure/storage/blobs/soft-delete-blob-overview
+
+좋아, 이 문제는 Azure Storage **“versioning vs soft delete 우선순위”**를 정확히 묻는 함정 문제야.
+
+✅ 정답
+A new previous version is automatically created containing the original blob content
+
+📌 핵심 개념 (중요)
+설정:
+
+Blob soft delete: Enabled
+
+Blob versioning: Enabled
+
+overwrite 발생
+
+📌 실제 동작 (핵심 포인트)
+✔ Versioning이 활성화되어 있으면
+overwrite 시:
+
+기존 blob = “deleted” 처리 ❌
+기존 blob = “previous version으로 저장” ✔
+
+즉:
+
+v2: new content (current)
+v1: old content (previous version)
+📌 Soft delete는 언제 적용되냐?
+Soft delete는:
+
+blob “삭제(delete)”될 때 동작
+
+하지만 이번 케이스는:
+
+overwrite (삭제 아님)
+
+📌 중요한 우선순위
+상황	적용되는 기능
+delete	Soft delete
+overwrite	Versioning
+👉 Versioning이 overwrite를 “가로챔”
+
+🔥 핵심 함정 포인트
+시험에서 자주 틀리는 부분:
+
+❌ “soft delete snapshot 생성”
+
+❌ “삭제된 blob처럼 처리”
+
+👉 실제로는:
+
+versioning이 있으면 overwrite는 무조건 version 생성
+
+🔑 한 줄 정리
+Blob versioning이 활성화된 상태에서 overwrite가 발생하면 기존 내용은 soft delete가 아니라 previous version으로 저장된다.
+
+
+뭔 소린지 모르겠다
+
+이 문제는 “overwrite(덮어쓰기) 했을 때 이전 파일이 어디로 가냐”만 보면 끝이야.
+
+📌 상황을 아주 쉽게 보면
+처음 상태:
+
+report.pdf = A (원본)
+개발자가 새 파일로 덮어씀:
+
+report.pdf = B (새 내용)
+👉 그러면 A는 어디로 갔냐?
+
+📌 Azure Storage 설정이 2개 있음
+Blob versioning ✔ 켜져 있음
+
+Soft delete ✔ 켜져 있음
+
+📌 핵심 규칙 (이게 전부야)
+👉 “덮어쓰기(overwrite)” 하면
+삭제 ❌
+
+이전 내용 사라짐 ❌
+
+대신:
+
+자동으로 이전 버전이 저장됨
+
+📌 결과
+Current version:
+report.pdf = B
+
+Previous version:
+report.pdf = A
+📌 Soft delete는 언제 쓰냐?
+이건 따로임:
+
+파일 “삭제(delete)”했을 때
+
+14일 동안 복구 가능
+
+👉 이번 문제는 삭제가 아니라 overwrite라서 영향 없음
+
+📌 한 줄로 끝
+overwrite하면 기존 파일은 삭제되지 않고 previous version으로 자동 저장된다
+
+📌 기억법 (시험용)
+overwrite → versioning
+
+delete → soft delete
+
+원하면 이거 10초 컷으로 구분하는 암기법도 만들어줄게.
+
+
+만약 versioning 설정 없으면?
+
+좋은 질문이야. 이걸 이해하면 Azure Storage 문제 거의 안 틀려.
+
+📌 versioning이 없으면 overwrite는 어떻게 되냐?
+👉 답:
+
+이전 blob 내용은 완전히 사라진다 (덮어써짐)
+
+📌 상황 비교
+1. Versioning 있음
+report.pdf = A (previous version)
+report.pdf = B (current)
+✔ 이전 내용 보존됨
+
+2. Versioning 없음
+report.pdf = B
+👉 A는?
+
+❌ 그냥 사라짐 (복구 불가)
+
+📌 Soft delete는 여기서 뭐하냐?
+Soft delete는:
+
+overwrite에는 관여 안 함
+
+“delete”에만 적용됨
+
+즉:
+
+작업	versioning	soft delete
+overwrite	이전 버전 보존	영향 없음
+delete	영향 없음	복구 가능
+📌 핵심 구조
+Overwrite
+  ├── Versioning ON → 이전 버전 저장
+  └── Versioning OFF → 그냥 덮어씀 (삭제)
+🔑 한 줄 정리
+Blob versioning이 없으면 overwrite 시 이전 데이터는 저장되지 않고 완전히 덮어써진다.
+
+
+같이 설정된 경우가 문제였지?
+
+맞아, 이 문제의 핵심이 바로 그거야.
+
+📌 상황 핵심
+두 가지가 같이 켜져 있었음:
+
+Blob versioning ✔
+
+Blob soft delete ✔
+
+그리고 동작은:
+
+overwrite 발생
+
+📌 이때 중요한 규칙 (시험 핵심)
+Versioning이 있으면 overwrite는 versioning이 우선 적용된다
+
+📌 결과
+기존 blob → 삭제 ❌
+
+soft delete snapshot 생성 ❌
+
+대신:
+👉 previous version 생성 ✔
+
+📌 왜 헷갈리게 나오냐?
+Azure Storage에는 “비슷한 보호 기능 2개”가 있어서 그래:
+
+기능	대상
+Versioning	overwrite
+Soft delete	delete
+📌 이 문제 구조
+overwrite 발생
+   ↓
+versioning이 먼저 처리
+   ↓
+previous version 생성
+   ↓
+soft delete는 적용 안 됨
+🔑 한 줄 정리
+versioning과 soft delete가 같이 있어도 overwrite 상황에서는 versioning이 우선 적용되어 이전 blob은 previous version으로 저장된다.
+
+
+You have an Azure subscription that contains a resource group named RG1. RG1 has a ReadOnly lock applied to it and contains an Azure Automation account. Automation runbooks in the account fail to start with a scope locked error. What should you do to allow the runbooks to start while maintaining protection against deletion?
+
+정답 핵심은 lock 타입을 바꾸는 것이야.
+
+📌 문제 상황
+RG1에 ReadOnly lock 적용됨
+
+Automation runbook 실행 실패 (“scope locked” 오류)
+
+목표:
+
+runbook은 실행되게 해야 함
+
+하지만 삭제 방지는 유지해야 함
+
+📌 Azure Resource Lock 종류
+1. ReadOnly Lock (현재 문제)
+❌ 읽기만 허용
+
+❌ 모든 write 작업 차단
+
+👉 Automation runbook 실행도 “write operation”으로 간주되어 실패
+
+2. Delete Lock (정답)
+✔ 리소스 조회/사용 가능
+
+✔ runbook 실행 가능
+
+❌ 삭제만 차단
+
+📌 왜 ReadOnly가 문제냐?
+ReadOnly lock은:
+
+“이 리소스는 절대 변경 금지”
+
+그래서 Azure Automation이 내부적으로 실행 상태 변경하려고 하면:
+
+start job
+
+update state
+
+👉 이게 blocked 됨
+
+📌 해결 방법
+👉 RG1의 lock을:
+
+ReadOnly → Delete lock으로 변경
+
+📌 구조 비교
+Lock type	Runbook 실행	삭제 방지
+ReadOnly	❌	✔
+Delete	✔	✔
+🔑 한 줄 정리
+Automation runbook 실행을 허용하면서 삭제만 방지하려면 Resource Group의 lock을 ReadOnly에서 Delete lock으로 변경해야 한다.
+
+
+Automation runbook 이 뭐야?
+
+Azure Automation Runbook은 쉽게 말하면:
+
+Azure 작업 자동화 스크립트
+
+야.
+
+📌 어떤 걸 자동화하냐?
+예:
+
+VM 자동 시작/중지
+
+리소스 정리
+
+패치 작업
+
+계정 생성
+
+백업 실행
+
+스케줄 작업
+
+📌 쉽게 비유
+Windows의:
+
+작업 스케줄러(Task Scheduler)
+
+Linux의:
+
+cron job
+
+같은 개념을 Azure에서 제공하는 거야.
+
+📌 구조
+Automation Account
+   └── Runbook (스크립트)
+          ↓
+       Azure 작업 수행
+📌 예시
+밤 10시에 VM 자동 종료:
+
+Stop-AzVM -Name VM1 -ResourceGroup RG1
+이 스크립트를 Runbook으로 등록하면:
+
+매일 자동 실행 가능
+
+📌 왜 lock 때문에 실패했냐?
+Runbook 실행 자체가 Azure 리소스 상태를 변경하는 작업이라서:
+
+job 생성
+
+상태 업데이트
+
+리소스 변경
+
+등이 발생함.
+
+근데 RG1에:
+
+ReadOnly lock
+
+이 걸려 있으니까:
+
+"아무 write 작업도 하지 마"
+상태가 돼서 실행 실패한 거야.
+
+📌 Delete lock이면?
+Delete lock은:
+
+수정/실행 ✔
+
+삭제만 ❌
+
+그래서 runbook 정상 실행 가능.
+
+🔑 한 줄 정리
+Azure Automation Runbook은 Azure 작업을 자동 실행하는 스크립트이며, ReadOnly lock은 이런 실행 작업까지 막을 수 있다.
+
+
+custom scripts 와 비슷한건가?
+
+비슷한 점은 있지만, 목적과 실행 위치가 달라.
+
+📌 공통점
+둘 다:
+
+스크립트 실행
+
+자동화 가능
+
+PowerShell / Bash 사용 가능
+
+📌 가장 큰 차이
+기능	어디서 실행?	목적
+Automation Runbook	Azure 관리 레벨	Azure 리소스 자동화
+Custom Script Extension	VM 내부	VM 설정/초기화
+1️⃣ Automation Runbook
+👉 Azure 바깥(관리 plane)에서 실행
+
+예:
+
+VM 시작/중지
+
+리소스 생성
+
+백업 수행
+
+계정 관리
+
+즉:
+
+Azure Automation
+   ↓
+Azure API 호출
+   ↓
+리소스 제어
+2️⃣ Custom Script Extension
+👉 VM 안에서 실행
+
+예:
+
+소프트웨어 설치
+
+IIS 설치
+
+설정 파일 수정
+
+즉:
+
+VM 내부에서 bash/powershell 실행
+📌 예시 비교
+Runbook
+Start-AzVM -Name VM1
+👉 Azure VM 시작
+
+Custom Script Extension
+Install-WindowsFeature Web-Server
+👉 VM 내부 IIS 설치
+
+📌 쉽게 비유
+Runbook
+“클라우드 관리 자동화 관리자”
+
+Custom Script
+“VM 안에 들어가서 설치 작업하는 스크립트”
+
+🔑 한 줄 정리
+Automation Runbook은 Azure 리소스를 관리하는 자동화 도구이고, Custom Script Extension은 VM 내부에서 스크립트를 실행하는 기능이다.
+
+
+Azure 관리 레벨 -> 이게 뭐지?
+
+좋은 질문이야. 여기서 “Azure 관리 레벨(management plane)”이라는 건:
+
+Azure 리소스를 ‘관리’하는 API 영역
+
+을 말해.
+
+Azure는 크게 2개로 나눠 생각하면 쉬워:
+
+1️⃣ Management Plane (관리 레벨)
+👉 Azure 리소스를 관리하는 영역
+
+예:
+
+VM 생성/삭제
+
+VM 시작/중지
+
+Storage 생성
+
+권한 설정
+
+NSG 변경
+
+즉:
+
+"Azure 리소스를 컨트롤"
+하는 영역.
+
+📌 예시
+Runbook에서:
+
+Stop-AzVM
+이건:
+
+VM 안에 들어가는 게 아님
+
+Azure API에:
+
+“VM 꺼라”
+
+라고 명령 보내는 것
+
+2️⃣ Data Plane (실제 내부 작업)
+👉 리소스 내부 데이터/OS 접근 영역
+
+예:
+
+VM 내부 파일 수정
+
+DB 데이터 읽기
+
+Blob 내용 읽기
+
+IIS 설치
+
+즉:
+
+"리소스 내부 작업"
+📌 Custom Script Extension은?
+이건 VM 내부에서 실행됨:
+
+Install-WindowsFeature Web-Server
+👉 실제 OS 안에서 실행됨.
+
+📌 비유
+Management Plane
+건물 관리실에서 전원 ON/OFF
+
+Data Plane
+실제 방 안에 들어가 가구 배치
+
+📌 Automation Runbook이 관리 레벨인 이유
+Runbook은 보통:
+
+Azure REST API
+
+Az PowerShell
+
+ARM
+
+같은 걸 통해 Azure 리소스를 제어함.
+
+즉:
+
+Automation → Azure API → VM 관리
+🔑 핵심 한 줄
+Management plane은 Azure 리소스를 생성·수정·제어하는 영역이고, Data plane은 리소스 내부 데이터나 OS를 다루는 영역이다.
+
+
+You have an Azure storage account that hosts file shares. You enable Microsoft Entra Domain Services authentication for the storage account. A security group named FileUsers needs read and write access to a file share named share1 over SMB. Which built-in role should you assign to the FileUsers group at the file share level?
+
+정답은:
+
+Storage File Data SMB Share Contributor
+
+📌 문제 핵심
+상황:
+
+Azure File Share 사용
+
+Microsoft Entra Domain Services 인증 활성화
+
+SMB 통해 접근
+
+FileUsers 그룹에:
+
+읽기 ✔
+
+쓰기 ✔
+권한 필요
+
+📌 Azure Files SMB용 RBAC 역할
+1. Storage File Data SMB Share Reader
+읽기만 가능
+
+❌ 쓰기 불가
+
+2. ✅ Storage File Data SMB Share Contributor
+읽기 ✔
+
+쓰기 ✔
+
+파일 생성/수정 가능 ✔
+
+👉 문제 요구사항과 정확히 일치
+
+3. Storage File Data SMB Share Elevated Contributor
+NTFS permission 변경 가능
+
+너무 강한 권한
+
+📌 중요한 포인트
+Azure Files SMB 인증에서는:
+
+Azure RBAC
+
+NTFS ACL
+
+둘 다 함께 사용 가능
+
+근데 문제는:
+
+“built-in role at file share level”
+
+이라고 했으므로 RBAC 역할 묻는 문제야.
+
+🔑 한 줄 정리
+Azure Files에서 SMB를 통해 읽기/쓰기 권한을 주려면 Storage File Data SMB Share Contributor 역할을 할당한다.
+
+
+Microsoft Entra Domain Services 가 뭐야? SMB 가 뭐야?
+
+좋아. 이 문제는 용어가 어려워서 헷갈리는 거야. 하나씩 아주 쉽게 보면 돼.
+
+1️⃣ SMB가 뭐냐?
+SMB는:
+
+파일 공유 프로토콜
+
+이야.
+
+Windows에서 흔히 쓰는:
+
+\\server\share
+이 방식이 SMB야.
+
+📌 쉽게 말하면
+회사 네트워크에서:
+
+공유 폴더 접근
+
+네트워크 드라이브 연결
+
+할 때 쓰는 기술.
+
+📌 Azure Files도 SMB 지원
+Azure Storage 안의 File Share를:
+
+\\storageaccount.file.core.windows.net\share1
+처럼 네트워크 드라이브처럼 사용 가능.
+
+2️⃣ Microsoft Entra Domain Services 가 뭐냐?
+이건 쉽게 말하면:
+
+Azure에서 제공하는 “관리형 Active Directory”
+
+야.
+
+📌 원래 회사 AD 환경
+보통 회사엔:
+
+Active Directory 서버
+
+Domain Controller
+
+LDAP/Kerberos
+
+같은 게 있음.
+
+📌 그런데 Azure에서는?
+Microsoft가 대신 제공:
+
+“AD 서버 직접 설치하지 말고 우리가 관리해줄게”
+
+→ 이게 Microsoft Entra Domain Services (예전 Azure AD DS)
+
+📌 그래서 가능한 것
+Azure VM이나 Azure Files가:
+
+도메인 로그인
+
+Kerberos 인증
+
+그룹 기반 접근 제어
+
+같은 전통적인 Windows AD 기능 사용 가능.
+
+📌 이 문제 전체 해석
+문제를 쉬운 말로 바꾸면:
+
+Azure 공유 폴더를
+회사 AD 계정으로 로그인해서
+읽기/쓰기하게 만들고 싶다
+
+야.
+
+📌 구조 그림
+User (AD 계정)
+   ↓ SMB 로그인
+Azure File Share
+   ↓
+Entra Domain Services 인증
+📌 그래서 왜 역할 필요?
+FileUsers 그룹에게:
+
+읽기
+
+쓰기
+
+권한을 줘야 해서:
+
+👉 Storage File Data SMB Share Contributor
+
+역할을 준 거야.
+
+🔑 핵심 한 줄
+SMB = Windows 파일 공유 방식
+
+Entra Domain Services = Azure의 관리형 Active Directory
+
+둘을 합쳐 Azure File Share를 “회사 파일 서버처럼” 사용하는 구조다.
+
+
+SMB 뭐의 약자야?
+
+SMB는:
+
+Server Message Block
+
+의 약자야.
+
+📌 이름 의미
+직역하면:
+
+Server = 서버
+
+Message = 메시지
+
+Block = 블록(데이터 단위)
+
+즉:
+
+서버와 파일/프린터 데이터를 주고받는 프로토콜
+
+📌 실제로 하는 일
+SMB로 가능한 것:
+
+네트워크 파일 공유
+
+공유 폴더 접근
+
+프린터 공유
+
+네트워크 드라이브 연결
+
+📌 Windows에서 많이 봤던 형태
+\\fileserver\shared
+이게 SMB 공유 경로야.
+
+📌 Azure에서 SMB
+Azure Files도 SMB 지원해서:
+
+\\storageaccount.file.core.windows.net\share1
+처럼 접근 가능.
+
+🔑 한 줄 정리
+SMB(Server Message Block)는 Windows 기반 네트워크 파일 공유 프로토콜이다.
+
+
+security group 은 또 뭐야?
+
+여기서의 security group은 NSG(Network Security Group)가 아니라:
+
+사용자들을 묶는 AD/Entra 그룹
+
+이야.
+
+즉:
+
+사람(User)
+
+또는 컴퓨터
+
+를 묶어서 권한을 주는 그룹.
+
+📌 쉽게 말하면
+예:
+
+FileUsers 그룹
+ ├── Jason
+ ├── Alice
+ └── Bob
+그리고 이 그룹에:
+
+share1 읽기/쓰기 권한
+을 주는 거야.
+
+📌 왜 그룹을 쓰냐?
+개별 사용자마다 권한 주면 관리 어려움.
+
+그래서:
+
+사람 추가 → 그룹에 넣기
+
+사람 제거 → 그룹에서 빼기
+
+만 하면 권한 자동 관리됨.
+
+📌 이 문제에서 의미
+문제 문장:
+
+“A security group named FileUsers”
+
+의 의미는:
+
+👉 “권한 관리용 사용자 그룹”
+
+📌 혼동 포인트
+Azure에는 이름 비슷한 게 많아:
+
+이름	의미
+Security Group	사용자/컴퓨터 그룹
+Network Security Group (NSG)	네트워크 방화벽 규칙
+👉 완전히 다른 것.
+
+📌 구조
+Security Group (FileUsers)
+        ↓
+RBAC Role 부여
+        ↓
+Azure File Share 접근
+🔑 한 줄 정리
+여기서 security group은 네트워크가 아니라, 사용자들을 묶어서 권한을 관리하는 AD/Entra 그룹이다.
+
+
+You have an Azure subscription that contains a virtual network named VNet1 with Azure Bastion deployed using the Standard SKU. A contractor needs to connect to a virtual machine named VM1 in VNet1 but does not have an Azure portal account. You need to provide secure access for the contractor. What should you configure?
+
+정답은:
+
+Azure Bastion Shareable Link
+
+📌 문제 핵심
+상황:
+
+Azure Bastion Standard SKU 사용 중
+
+contractor가 VM1 접속 필요
+
+❌ Azure Portal 계정 없음
+
+✔ 안전하게 접속 제공해야 함
+
+📌 왜 Shareable Link냐?
+Azure Bastion Standard SKU에는:
+
+Shareable Link 기능
+
+이 있음.
+
+이 기능은:
+
+Azure Portal 계정 없는 사용자도
+
+특별 링크(URL)로
+
+브라우저 통해 VM 접속 가능하게 해줌
+
+📌 구조
+Contractor
+   ↓ Shareable Link
+Azure Bastion
+   ↓
+VM1
+📌 장점
+공인 IP 불필요
+
+RDP/SSH 포트 인터넷 노출 안 함
+
+Portal 계정 없이 접속 가능
+
+브라우저 기반 보안 접속
+
+📌 왜 Standard SKU 중요하냐?
+Shareable Link는:
+
+❌ Basic SKU 없음
+
+✔ Standard SKU 기능
+
+문제에서 일부러 “Standard SKU”를 준 이유가 이거야.
+
+🔑 한 줄 정리
+Azure Portal 계정이 없는 외부 사용자가 VM에 안전하게 접속하도록 하려면 Azure Bastion Standard SKU의 Shareable Link 기능을 사용한다.
+
+
+You have an Azure subscription that contains a storage account with a protected Azure file share. The backup policy uses the Snapshot tier only. A user accidentally deletes several files from the file share. You need to restore only the deleted files to the original location. What should you select as the restore type?
+Something went wrong.
+
+Retry
+
+
+

@@ -1,0 +1,30 @@
+//  모든 사용자가 모든 클라우드 앱에 접근할 때 8시간마다 재인증을 하도록 강제하는 정책
+// 소속: ID 보안 영역 (Microsoft Entra ID / 구글로 치면 계정 보안)
+// cf. Azure Policy는 리소스에 대한 규정 준수 정책을 정의하는 것이고,
+// Conditional Access Policy는 사용자와 애플리케이션에 대한 액세스 제어 정책을 정의하는 것이다.
+{
+  "displayName": "CAP-Session-Require-Reauth-Every-8Hours",
+  "state": "enabled",
+  "conditions": {
+    "users": {
+      "includeUsers": ["All"],
+      "excludeUsers": []
+    },
+    "applications": {
+      "includeApplications": ["All"],
+      "excludeApplications": []
+    }
+  },
+  "grantControls": {
+    "operator": "OR",
+    "builtInControls": ["mfa"]
+  },
+  "sessionControls": {
+    "signInFrequency": {
+      "value": 8,
+      "type": "hours",
+      "isEnabled": true,
+      "authenticationType": "primaryAndSecondaryAuthentication"
+    }
+  }
+}

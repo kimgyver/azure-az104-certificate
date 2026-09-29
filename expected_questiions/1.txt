@@ -1,0 +1,2644 @@
+이 문제는 Azure Load Balancer에서 “모든 트래픽 (all ports, all protocols)” 을 처리해야 할 때의 정답 패턴이야.
+
+결론부터:
+
+👉 Protocol: All
+👉 Port: 0 (또는 All Ports)
+
+✔️ 왜 이 설정이 맞냐
+
+요구사항:
+
+TCP + UDP 둘 다
+모든 포트
+NVA (방화벽, IDS 등) → 보통 패킷 그대로 전달해야 함
+
+그래서:
+
+1. Protocol = All
+TCP만 ❌
+UDP만 ❌
+둘 다 필요 → All
+2. Port = 0 (All ports 의미)
+특정 포트 (80, 443) ❌
+전체 포트 범위 필요 → 0 (all ports)
+
+Azure에서 HA Ports rule 만들 때 쓰는 방식이야
+
+✔️ 핵심 개념: HA Ports
+
+이 문제의 숨은 키워드 = HA Ports rule
+
+모든 포트
+모든 프로토콜
+NVA 같은 장비에 트래픽 전달할 때 사용
+✔️ 한 줄 정리 (시험용)
+
+👉 HA Ports rule = Protocol: All + Port: 0
+
+✔️ 인터뷰용 한마디
+
+"For NVAs, we typically use an HA Ports rule on a Standard Load Balancer, which uses protocol 'All' and port '0' to forward all traffic without port-level filtering."
+
+필요하면
+👉 
+Gateway Load Balancer vs Standard Load Balancer 차이
+👉 
+NVA 구조 (hub-spoke + UDR 포함)
+
+이것도 이어서 정리해줄게.
+
+문제가 무슨 뜻이지?
+
+이 문제는 ARM template 배포 전에 syntax/validation만 하고 실제 리소스는 만들지 않는 방법을 묻는 거야.
+
+정답은:
+
+az deployment group validate
+왜?
+
+현재 실제 배포 명령은:
+
+az deployment group create
+
+이건 이름 그대로 create = 실제 배포라서 리소스 생성 가능.
+
+문제 요구사항:
+
+template syntax 확인
+validation only
+no resources created
+
+그러면 create 말고 validate 사용해야 함.
+
+보통 형태
+az deployment group validate \
+  --resource-group myResourceGroup \
+  --template-file azuredeploy.json \
+  --parameters azuredeploy.parameters.json
+
+이렇게 하면:
+
+JSON syntax 검사
+parameter validation
+ARM template schema validation
+권한/기본적인 deployment validation
+
+하지만 실제 리소스 생성 ❌
+
+헷갈릴 수 있는 것
+what-if
+az deployment group what-if
+
+이건 validation도 어느 정도 되지만 핵심 목적은:
+
+무슨 변경이 일어날지 preview
+
+예:
+
+create
+modify
+delete
+
+즉 "diff preview" 느낌.
+
+문제가 syntax validation만 묻고 있으니 보통 정답 아님.
+
+한 줄 정리
+실제 배포 → az deployment group create
+validation only → az deployment group validate ✅
+change preview → az deployment group what-if
+You are creating a metric alert rule for an Azure virtual machine. You add two conditions to the alert rule: Percentage CPU greater than 90 percent AND Available Memory Bytes less than 1 GB. When does the alert fire?
+이거 틀린 답이야?
+When both conditions have been true at any point within the evaluation period
+
+짧게 말하면 👉 그 답은 틀렸어.
+
+좋은 포인트 짚었어 👍
+결론부터 말하면:
+
+👉 “각 조건이 evaluation period 내 ‘어느 시점이든 한 번이라도 만족하면 된다”
+이걸 만들려면 기본 AND 조건만으로는 안 되고, aggregation + window 설정을 활용해야 해.
+
+✔️ 왜 기본 설정으로는 안 되냐
+
+기본 Metric Alert:
+
+AND 조건 = 같은 시점(same time slice) 에 둘 다 true여야 함
+
+그래서 네가 말한 것처럼:
+
+“evaluation period 안에서 각각 한 번이라도 true”
+
+👉 ❌ 기본 AND로는 구현 불가
+
+✔️ 해결 방법 (핵심 아이디어)
+
+👉 각 조건을 “순간값”이 아니라
+👉 “evaluation window 동안 조건이 한 번이라도 발생했는지” 로 바꿔야 함
+
+✔️ 설정 방법
+방법 1: Aggregation 활용 (가장 현실적인 방법)
+
+각 metric 조건을 이렇게 바꿔:
+
+1️⃣ CPU 조건
+Metric: Percentage CPU
+Aggregation: Max
+Condition: > 90
+Window: 예) 5분
+
+👉 의미:
+
+“지난 5분 동안 CPU가 90%를 넘은 적이 한 번이라도 있으면 true”
+
+2️⃣ Memory 조건
+Metric: Available Memory Bytes
+Aggregation: Min
+Condition: < 1GB
+Window: 동일하게 5분
+
+👉 의미:
+
+“지난 5분 동안 메모리가 1GB 아래로 떨어진 적이 한 번이라도 있으면 true”
+
+✔️ 이렇게 하면 결과
+CPU spike (10:01) → Max 조건 만족
+Memory drop (10:04) → Min 조건 만족
+
+👉 같은 시점 아니어도
+👉 같은 evaluation window 안이면
+
+✅ 둘 다 true → alert 발생
+
+✔️ 핵심 구조
+
+👉 Aggregation + Window = “within evaluation period” 효과
+
+✔️ 한 줄 정리
+
+👉
+
+기본 AND → “동시에 true”
+Aggregation(Max/Min) 사용 → “기간 내 한 번이라도 true”
+✔️ 인터뷰용 한마디
+
+“To achieve ‘within evaluation period’ behavior, we use aggregations like Max or Min over the evaluation window, so each condition reflects whether the threshold was breached at any point during that period.”
+
+원하면
+👉 
+evaluation frequency vs window size 차이 (시험 단골)
+👉 
+alert noise 줄이는 방법 (실무 중요)
+
+이것도 이어서 정리해줄게.
+
+storage firewall to restrict access. You add the public IP address of an on-premises server to the IP network rules. Users in an Azure virtual machine in the East US region report they cannot access storage1 even though their virtual network is in the same region. You need to enable the virtual machine to access storage1. What should you do?
+
+이 문제 핵심은 Storage Firewall이 “누구를 허용하느냐” 기준이 뭐냐야.
+응 👍 완전히 다른 개념이야. 이름이 비슷해서 헷갈리는데 역할이 아예 다름.
+
+✔️ 한 줄 핵심 비교
+
+👉 NSG = 네트워크 트래픽 필터 (방화벽)
+👉 VNet rule = 특정 Azure 네트워크 “출신”만 허용 (리소스 접근 제어)
+
+✔️ NSG (Network Security Group)
+적용 대상: VM, Subnet, NIC
+역할: 트래픽 허용/차단
+기준:
+IP
+Port
+Protocol (TCP/UDP)
+
+👉 쉽게 말하면
+“이 포트 열어줄까 말까?”
+
+✔️ VNet Rule (예: Storage Firewall)
+적용 대상: Storage, Key Vault 같은 PaaS 서비스
+역할: 누가 접근할 수 있는지 정의
+기준:
+Virtual Network / Subnet
+
+👉 쉽게 말하면
+“이 네트워크 출신이면 들어와도 됨”
+
+✔️ 비유로 보면
+NSG 👉 건물 입구의 보안요원
+→ “80번 포트만 들어와”
+VNet rule 👉 건물 출입 허가 리스트
+→ “이 회사 직원만 들어와”
+✔️ 둘의 관계
+
+같이 써야 하는 경우 많음:
+
+NSG
+→ VM 트래픽 허용 (예: outbound 443)
+VNet rule
+→ Storage 접근 허용
+
+👉 둘 중 하나라도 막으면 통신 실패
+
+✔️ 핵심 차이 표
+구분	NSG	VNet rule
+레벨	네트워크 (L3/L4)	서비스 접근
+적용 대상	VM / Subnet	Storage, Key Vault
+기준	IP, Port	Subnet
+역할	트래픽 필터링	접근 권한
+✔️ 시험 포인트
+
+👉 “VM → Storage 접근 안 됨” 나오면
+
+NSG 문제? ❌ (대부분 아님)
+👉 VNet rule / Service Endpoint 문제 ✅
+✔️ 한 줄 정리
+
+👉 NSG는 ‘길을 막는 것’
+👉 VNet rule은 ‘누가 목적지에 들어갈 수 있는지’
+
+원하면
+👉 
+NSG vs Azure Firewall vs UDR 한 번에 정리
+👉 
+실제 트래픽 흐름 (VM → Storage) 그림으로 설명
+
+이거 이어서 확실하게 잡아줄게.
+
+좋아, 이건 시험/인터뷰에서 자주 나오는 핵심 비교야.
+👉 ARM template vs Bicep 조건부 배포 차이
+
+✔️ 1. 조건부 배포 방식 비교
+🔵 ARM Template (JSON)
+{
+  "type": "Microsoft.Storage/storageAccounts",
+  "apiVersion": "2023-01-01",
+  "name": "mystorageaccount",
+  "condition": "[parameters('deployStorage')]",
+  "location": "[resourceGroup().location]",
+  "sku": {
+    "name": "Standard_LRS"
+  }
+}
+✔️ 특징
+"condition" 속성 사용
+값은 ARM expression ([ ])
+JSON이라 verbose
+🟢 Bicep
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = if (deployStorage) {
+  name: 'mystorageaccount'
+  location: resourceGroup().location
+  sku: {
+    name: 'Standard_LRS'
+  }
+}
+✔️ 특징
+if (condition) 사용
+더 직관적 (code-like)
+JSON 없음 → 훨씬 간결
+✔️ 2. 핵심 차이 정리
+항목	ARM Template	Bicep
+문법	JSON	DSL (간단한 코드 스타일)
+조건문	"condition": ...	= if (condition)
+가독성	낮음	높음
+유지보수	어려움	쉬움
+복잡도	높음	낮음
+✔️ 3. 개념 차이 (중요)
+ARM
+
+👉 “선언 + JSON 기반 템플릿 엔진”
+
+expression language 사용 [ ]
+verbose
+실수 많음
+Bicep
+
+👉 “ARM을 감싼 abstraction language”
+
+ARM으로 컴파일됨
+더 간단한 syntax
+Azure 권장 방식
+✔️ 4. 실행 흐름
+Bicep
+  ↓ (compile)
+ARM JSON
+  ↓
+Azure Resource Manager
+  ↓
+Resource deployment
+✔️ 5. 시험 포인트
+
+👉 질문이 이렇게 나오면:
+
+“조건부로 리소스 배포”
+
+정답 패턴
+ARM → "condition"
+Bicep → if (condition)
+✔️ 6. 한 줄 정리
+
+👉 ARM은 JSON + condition 속성, Bicep은 if 키워드로 조건부 리소스 제어
+
+원하면
+👉 
+ARM vs Bicep vs Terraform 비교 (요즘 인터뷰 핵심)
+👉 
+Bicep module 구조 (실무에서 중요)
+
+이것도 같이 정리해줄게.
+
+Azure Application Gateway
+🔷 Azure Application Gateway란?
+
+👉 Azure Application Gateway는 L7 (Layer 7) 웹 트래픽 로드 밸런서야.
+즉, HTTP/HTTPS 요청 내용을 “보고” 트래픽을 분배할 수 있는 서비스야.
+
+✔️ 구조 이해
+User Request
+   ↓
+Application Gateway
+   ↓ (sets cookie: ARRAffinity)
+Backend VM A  ← 계속 고정
+✔️ 설정 이름 (시험 중요)
+
+👉 Enable “Cookie-based affinity”
+
+✔️ 왜 cookie냐
+
+Application Gateway는:
+
+사용자 IP 기반 아님 ❌ (NAT, proxy 때문에 불안정)
+대신 HTTP cookie 사용
+✔️ 선택지 헷갈리는 것들
+
+❌ Load balancing rule
+→ 단순 분산만 함
+
+❌ Source IP affinity (Azure Load Balancer 쪽 개념)
+→ L4 개념이라 App Gateway랑 다름
+
+✔️ 한 줄 정리
+
+👉 Application Gateway에서 session persistence는 “cookie-based affinity”로 해결한다
+
+✔️ 인터뷰용 한마디
+
+“We enable cookie-based session affinity on Application Gateway, which ensures that requests from the same client session are consistently routed to the same backend server using the ARRAffinity cookie.”
+
+원하면
+👉 
+Application Gateway vs Load Balancer sticky session 차이
+👉 
+왜 IP affinity가 아닌 cookie를 쓰는지
+
+이것도 같이 정리해줄게.
+
+✔️ FQDN이 뭐냐?
+
+👉 FQDN = Fully Qualified Domain Name
+
+한마디로:
+
+“인터넷에서 특정 서버를 정확하게 가리키는 전체 도메인 주소”
+
+✔️ 예시
+google.com ❌ (부분 이름)
+www.google.com ✅ (FQDN)
+update.microsoft.com ✅ (FQDN)
+✔️ 구조
+[host].[domain].[tld]
+
+예:
+
+www.example.com
+www → host
+example → domain
+.com → top-level domain
+✔️ 왜 “Fully Qualified”냐
+
+👉 “완전히 지정된 이름”이라는 뜻
+
+즉:
+
+어디서든 유일하게 특정 서버를 식별 가능
+DNS에서 정확히 IP로 변환됨
+✔️ Azure에서 왜 중요하냐
+
+Azure Firewall / NSG / App Gateway에서는:
+
+👉 “이 트래픽 어디로 보낼까?”를 결정할 때
+
+IP ❌ (바뀔 수 있음)
+FQDN ✅ (DNS 기반이라 유연함)
+✔️ Azure Firewall 예시
+Allow outbound HTTPS to:
+  www.microsoft.com
+  update.microsoft.com
+
+👉 이게 FQDN 기반 rule
+
+✔️ 문제에서 나온 핵심 연결
+
+Windows Update 같은 Microsoft 서비스
+
+👉 IP 고정 없음
+👉 FQDN으로 관리됨
+👉 그래서 FQDN Tag 사용
+
+✔️ 한 줄 정리
+
+👉 FQDN = “DNS 이름으로 된 정확한 서버 주소 (예: www.google.com)”
+
+원하면
+👉 
+FQDN vs IP vs Service Tag 차이 (시험 단골 3종 비교)
+👉 
+DNS가 Azure에서 어떻게 동작하는지
+
+이거까지 이어서 깔끔하게 정리해줄게.
+
+이 문제는 Azure VM Extension이 왜 실패하는지 보는 아주 전형적인 “NSG + VM Agent + outbound dependency” 문제야.
+
+✔️ 핵심 상황
+ARM template로 VM 배포
+Custom Script Extension 사용
+VM Agent 정상 (중요)
+NSG가 outbound를 제한 중
+Extension 실행 실패
+✔️ 핵심 포인트
+
+👉 VM Extension은 “VM 내부에서 실행되는 게 아니라”
+👉 Azure Control Plane에서 다운로드됨
+
+즉:
+
+VM이 Azure 쪽 서비스에 접근 못하면 extension 실행 실패
+
+✔️ 정답
+
+👉 168.63.129.16
+
+✔️ 이 IP가 뭐냐?
+
+👉 Azure가 모든 VM에 자동 제공하는 special virtual public IP
+
+용도:
+
+VM Agent 통신
+DNS resolution
+VM extensions 다운로드/관리
+health probe
+✔️ 왜 중요한가
+
+NSG가 너무 restrictive하면:
+
+VM → Azure Extension 서버 접근 실패
+script 다운로드 안 됨
+provisioning stuck / failed
+✔️ 구조
+VM
+ ↓ (needs access)
+168.63.129.16  ← Azure platform IP
+ ↓
+Extension download & execution
+✔️ 시험 포인트
+
+👉 VM Extension 관련 문제 나오면 거의 항상 이 IP 등장
+
+✔️ 헷갈리는 것들
+
+❌ Azure public IP range (아님)
+❌ Internet access general (아님)
+❌ storage endpoint (아님)
+
+✔ 정답: 168.63.129.16
+
+✔️ 한 줄 정리
+
+👉 Azure VM Extensions 동작하려면 168.63.129.16 접근이 반드시 필요
+
+✔️ 인터뷰용 한마디
+
+“Azure VM extensions rely on communication with the Azure platform IP 168.63.129.16, so NSG outbound rules must allow access to this IP for extension provisioning.”
+
+원하면
+👉 
+VM Agent vs Extension vs Custom Script Extension 차이
+👉 
+NSG outbound 최소 허용 리스트 (시험 단골)
+
+이것도 같이 정리해줄게.
+
+결론부터 말하면:
+
+👉 “Windows에서는 ACI multi-container(사이드카) 시나리오가 사실상 지원되지 않는다” → 그래서 시험 정답은 Linux가 되는 것
+
+✔️ 왜 Windows는 안 되냐
+
+Azure Container Instances에서:
+
+🟡 Windows containers
+기본적으로 single-container 중심
+multi-container group 지원이 매우 제한적이거나 시나리오 비권장
+sidecar 패턴 (logging/proxy 등) ❌
+🟢 Linux containers
+✔ multi-container group 완전 지원
+✔ sidecar pattern 표준
+✔ production 사용 가능
+✔️ 핵심 차이
+기능	Linux	Windows
+multi-container group	✅	❌ (제한적/비권장)
+sidecar pattern	✅	❌
+logging container 같이 실행	✅	❌
+✔️ 중요한 포인트 (시험용)
+
+이 문제는 “기술적으로 OS 선택”이 아니라:
+
+👉 “ACI에서 multi-container = Linux만 선택 가능”을 알고 있냐”
+
+를 묻는 문제야.
+
+✔️ 왜 이런 제한이 있냐 (이해용)
+
+Windows containers는:
+
+VM 기반 오버헤드 큼
+isolation 구조 다름
+ACI design이 Linux 중심으로 최적화됨
+
+👉 그래서 feature parity 없음
+
+✔️ 한 줄 정리
+
+👉 ACI에서 sidecar / multi-container 필요하면 Linux만 선택 가능 (Windows는 제한적이라 제외)
+
+원하면
+👉 
+ACI vs AKS에서 sidecar 지원 차이
+👉 
+“왜 Kubernetes는 Windows에서도 sidecar 되는지”
+
+이거까지 이어서 정리해줄게.
+
+그럼 Kubernetes 도 windows 에선 어려워?
+
+좋은 질문이야. 결론부터 말하면:
+
+👉 Kubernetes는 Windows에서도 가능하지만, Linux만큼 자연스럽거나 완전하지는 않다
+
+✔️ 핵심 결론
+Kubernetes = ✔ Windows 노드 지원함
+하지만:
+대부분 기능은 Linux 기준으로 설계됨
+Windows는 “제한된 워크로드”용
+✔️ 어떻게 동작하냐
+
+Kubernetes 클러스터는 보통 이렇게 구성됨:
+
+Control Plane (Linux only)
+        ↓
+-------------------------
+Node Pool
+  - Linux nodes (main)
+  - Windows nodes (optional)
+
+👉 Windows 노드는 “추가 옵션” 느낌
+
+이 문제는 Azure Storage + Service Endpoint에서 자주 나오는 “data exfiltration 방지” 개념 문제야.
+
+✔️ 상황 정리
+VNet subnet 있음
+Microsoft.Storage Service Endpoint 활성화됨
+목표:
+특정 Storage Account 2개만 허용
+다른 Storage 접근 차단 (data exfiltration 방지)
+✔️ 핵심 개념
+
+👉 Service Endpoint만 쓰면 문제가 있음:
+
+subnet → Azure Storage 전체 접근 가능 ❌ (너무 넓음)
+
+그래서 필요한 것:
+
+“이 subnet은 특정 storage account만 접근 가능하게 제한”
+
+✔️ 정답
+
+👉 Storage account firewall에 VNet rules + Service Endpoint + “Allow trusted Microsoft services” 아님 → 대신 특정 Storage account만 지정
+
+즉 핵심은:
+
+👉 Storage account의 Network rules (VNet rules)
+
+✔️ 정확한 설정
+
+각 Storage account에서:
+
+✔️ Configure:
+Networking → Firewalls and virtual networks
+Add:
+해당 subnet (VNet rule)
+✔️ 결과
+Subnet A → Storage A, B만 접근 가능
+다른 Storage accounts → ❌ 차단
+✔️ 중요한 포인트 (시험 핵심)
+
+👉 Service Endpoint만 있으면:
+
+❌ subnet → 모든 storage account 접근 가능
+
+👉 VNet rule 추가하면:
+
+✔ 특정 storage account만 허용
+
+✔️ 개념 구조
+Subnet (Service Endpoint enabled)
+   ↓
+Storage Account A ✔ allowed (VNet rule)
+Storage Account B ✔ allowed (VNet rule)
+Storage Account C ❌ blocked
+✔️ 왜 data exfiltration 문제가 나오냐
+
+👉 Service Endpoint만 쓰면:
+
+같은 region storage면 다 접근 가능
+다른 tenant / account로 데이터 유출 가능
+
+그래서 반드시:
+
+👉 Storage firewall에서 허용 대상 제한
+
+✔️ 한 줄 정리
+
+👉 Service Endpoint + Storage account VNet rules를 사용해 특정 storage account만 허용해야 한다
+
+✔️ 시험용 핵심 문장
+
+“To prevent data exfiltration, configure storage account firewall rules to allow only specific VNets/subnets via service endpoints.”
+
+원하면
+👉 
+Service Endpoint vs Private Endpoint (이 문제의 진짜 상위 개념)
+👉 
+왜 Private Endpoint가 더 안전한지
+
+이거까지 이어서 완전히 정리해줄게.
+
+Storage account VNet rules -> 이건 뭐야?
+
+좋아, 이건 Azure에서 제일 헷갈리는 개념 중 하나야. 핵심만 딱 잡아줄게.
+
+✔️ Storage account VNet rules란?
+
+👉 “특정 Virtual Network / Subnet에서만 Storage Account 접근을 허용하는 보안 규칙”
+
+좋아, 이건 네가 헷갈린 게 아니라 개념이 2단계로 나뉘어 있어서 일부러 헷갈리게 만든 문제야. 정답도 맞고, 핵심은 “VNet rule”이 아니라 Service Endpoint Policy야.
+
+✔️ 정답 개념: Service Endpoint Policies
+
+👉 이 문제의 진짜 정답은:
+
+Service Endpoint Policy
+
+✔️ 왜 이게 필요한가
+
+기본 Service Endpoint 구조는 이렇게 동작함:
+
+❌ 기본 Service Endpoint 문제
+Subnet → Microsoft.Storage 접근 허용
+하지만:
+👉 모든 Storage Account로 접근 가능
+
+즉:
+
+“Azure Storage 전체 열림” → data exfiltration 위험
+
+✔️ 그래서 나온 기능
+
+👉 Service Endpoint Policy (중요!)
+
+✔️ Service Endpoint Policy란?
+
+👉 “Subnet에서 Azure Storage로 나갈 때,
+어떤 Storage Account만 허용할지 필터링하는 기능”
+
+✔️ 구조
+Subnet
+  ↓ (Service Endpoint)
+Azure Storage (filtered by policy)
+   ✔ Storage A
+   ✔ Storage B
+   ❌ Storage C (blocked)
+✔️ 핵심 차이 (진짜 중요)
+개념	역할
+Service Endpoint	Storage 접근 경로 열어줌
+VNet Rule (Storage side)	특정 subnet 허용
+Service Endpoint Policy	특정 storage account만 허용 ⭐
+✔️ 문제에서 원하는 것
+
+“only two specific storage accounts”
+
+👉 이건 VNet rule로는 해결 불가능
+
+👉 반드시:
+
+✔ Service Endpoint Policy 사용
+
+✔️ 왜 이게 핵심이냐
+
+이건 보안 강화 단계임:
+
+Level 1
+Service Endpoint → 그냥 storage 전체 접근 가능
+Level 2
+VNet rule → subnet 제한
+Level 3 (정답)
+Service Endpoint Policy → storage account까지 제한
+✔️ 시험 트릭 포인트
+
+문장 키워드:
+
+“prevent data exfiltration to other storage accounts”
+
+👉 이거 나오면 100%:
+
+👉 Service Endpoint Policy
+
+✔️ 한 줄 정리
+
+👉 Service Endpoint Policy = Subnet에서 특정 Storage Account만 허용하는 outbound filter
+
+✔️ 인터뷰용 한마디
+
+“Service endpoint policies are used to restrict outbound traffic from a subnet to only specific Azure Storage accounts, preventing data exfiltration while still using service endpoints.”
+
+원하면
+👉 
+Service Endpoint vs VNet Rule vs Private Endpoint (3개 완벽 비교)
+👉 
+data exfiltration 실제 시나리오 (시험 단골)
+
+이거 한 번에 정리해줄게.
+
+✔️ 핵심 결론
+
+👉 Basic (B1) App Service Plan
+
+✔️ 왜 이 문제가 이렇게 나오는가
+
+현재 상황:
+
+WebApp1 = Free (F1) tier
+요구사항:
+custom domain 사용
+TLS/SSL certificate 적용
+비용 최소화
+❌ Free (F1)에서는 안 됨
+
+Free tier 제한:
+
+❌ custom domain 불가
+❌ SSL/TLS 바인딩 불가
+❌ production 기능 제한 많음
+✔️ 최소 요구 조건
+
+custom domain + SSL을 하려면:
+
+👉 최소 Basic tier 이상 필요
+
+✔️ 정답: Basic (B1)
+Basic tier 특징:
+✔ custom domain 지원
+✔ SSL certificate 지원
+✔ production-ready
+✔ low cost (Standard보다 저렴)
+✔️ 왜 Standard가 아닌가?
+
+Standard도 가능하지만:
+
+더 비쌈
+autoscale / staging slot 같은 기능 포함
+
+👉 문제에서 요구:
+
+“minimize costs”
+
+👉 그래서 Basic이 정답
+
+✔️ tier 비교 (핵심 시험 포인트)
+Tier	Custom Domain	SSL	비용
+Free (F1)	❌	❌	lowest
+Basic (B1)	✔	✔	low ⭐
+Standard (S1)	✔	✔ + advanced	higher
+✔️ 한 줄 정리
+
+👉 custom domain + SSL 필요하면 최소 Basic tier (B1)
+
+✔️ 인터뷰용 한마디
+
+“Free tier does not support custom domains or SSL bindings, so we need at least the Basic App Service plan, which provides both at the lowest cost.”
+
+원하면
+👉 
+App Service plan 전체 tier (F1 → P3) 정리
+👉 
+언제 Standard vs Premium 써야 하는지
+
+이거 한 번에 시험용으로 정리해줄게.
+
+You have an Azure SQL Database named DB1 in the vCore purchasing model. The database uses a General Purpose service tier. A user accidentally deletes critical data from a table. You need to restore the database to a point in time 10 minutes before the deletion occurred. The solution must minimize administrative effort. What should you do?
+✔️ 정답
+
+👉 Point-in-time restore (PITR) of the Azure SQL Database
+
+✔️ 정답
+
+👉 Incremental only
+
+✔️ 핵심 개념
+
+ARM template에서 linked template (nested/linked deployment) 를 사용할 때는 deployment mode를 지정할 수 있음.
+
+하지만 중요한 제한이 있어:
+
+🔥 linked template는 Incremental mode만 지원됨
+
+✔️ 두 가지 deployment mode 비교
+🔵 Incremental (정답)
+
+👉 기본값 + 유일하게 linked template에서 사용 가능
+
+기존 리소스 유지
+템플릿에 정의된 것만 추가/업데이트
+안전한 방식
+🔴 Complete (불가능/주의)
+
+👉 템플릿에 없는 리소스를 삭제까지 함
+
+linked template에서는 사용 불가
+매우 위험 (전체 리소스 영향)
+✔️ 왜 Incremental만 가능하냐
+
+linked template는:
+
+VM → NIC → Network 등 여러 리소스를 단계적으로 구성
+
+👉 그런데 Complete mode는:
+
+“템플릿에 없는 것도 다 삭제”
+
+이건 linked 구조랑 충돌해서 Azure가 제한함
+
+✔️ 구조
+Main template (VM)
+   ↓
+Linked template (NIC)
+   ↓
+Incremental deployment only
+✔️ 시험 포인트
+
+👉 키워드:
+
+linked template
+nested deployment
+storage account (template location)
+
+👉 무조건:
+
+✔ Incremental
+
+✔️ 헷갈리는 포인트
+
+❌ Complete mode
+→ ARM에서는 존재하지만 linked template에서는 사용 불가
+
+✔️ 한 줄 정리
+
+👉 ARM linked template deployment mode는 Incremental만 지원된다
+
+✔️ 인터뷰용 한마디
+
+“Linked ARM templates only support incremental deployment mode to ensure safe and additive resource provisioning without unintended deletions.”
+
+원하면
+👉 
+ARM linked template vs nested template 차이
+👉 
+Bicep module이 이걸 어떻게 대체하는지
+
+이것도 이어서 정리해줄게.
+
+You have a Microsoft Entra tenant. You configure self-service password reset (SSPR) with the following settings: Number of methods required to reset: 2. Methods available to users: Mobile app notification, Mobile app code, Email, Mobile phone. A user named User1 registers only one authentication method for SSPR. User1 forgets their password and attempts to use SSPR to reset it. What happens when User1 tries to reset their password?
+✔️ 핵심 결론
+
+👉 User1은 password reset을 할 수 없다.
+
+✔️ 정답
+
+👉 Azure Resource Manager (ARM) What-if operation
+
+✔️ 핵심 상황
+
+요구사항:
+
+ARM template 배포 예정
+배포 전에 미리 확인
+변경사항 preview 필요
+❌ 실제 리소스 생성/수정 금지
+✔️ 정답 기능
+
+👉 What-if
+
+✔️ What-if란?
+
+ARM deployment 전에:
+
+“이 템플릿을 실행하면 어떤 변화가 생길까?”
+
+를 보여주는 기능
+
+✔️ 특징
+✔ 리소스 생성 여부 표시
+✔ 수정 여부 표시
+✔ 삭제 여부 표시
+❌ 실제 변경은 발생하지 않음
+✔️ 실행 예시
+az deployment group what-if \
+  --resource-group myRG \
+  --template-file azuredeploy.json
+✔️ 결과 예시
++ create Microsoft.Compute/virtualMachines/vm1
+~ modify Microsoft.Storage/storageAccounts/storage1
+- delete Microsoft.Network/networkInterfaces/nic1
+✔️ 왜 validate가 아닌가?
+
+❌ az deployment group validate
+
+syntax 확인만 함
+변경 영향 분석 ❌
+✔️ what-if vs validate
+기능	validate	what-if
+syntax check	✔	✔
+resource impact preview	❌	✔
+actual changes	❌	❌
+✔️ 핵심 포인트
+
+👉 문제 키워드:
+
+“preview changes”
+“unexpected modifications”
+“no resources created”
+
+👉 무조건:
+
+✔ What-if
+
+✔️ 한 줄 정리
+
+👉 ARM What-if operation은 배포 전에 리소스 변경 영향을 시뮬레이션하지만 실제 변경은 하지 않는다
+
+✔️ 인터뷰용 한마디
+
+“We use the ARM what-if operation to preview all resource changes before deployment without applying any modifications to the environment.”
+
+원하면
+👉 
+ARM validate vs what-if vs deploy 차이 (시험 핵심 3종 비교)
+👉 
+Bicep에서 what-if 사용하는 방식
+
+이것도 같이 정리해줄게.
+
+Crash-consistent vs App-consistent vs File-consistent 차이
+
+이건 Azure Backup 이해의 핵심 3종 비교야. 한 번 잡아두면 시험 문제 거의 다 커버돼.
+
+✔️ 1. Crash-consistent backup
+
+👉 “디스크 상태만 그대로 찍는 가장 기본 수준”
+
+특징
+VM 디스크 snapshot만 캡처
+OS/파일시스템 기준 정합성도 보장 안 될 수 있음
+메모리 / DB 트랜잭션 무시
+비유
+
+👉 “컴퓨터 전원 갑자기 꺼진 상태”
+
+장점
+빠름
+오버헤드 거의 없음
+단점
+앱 깨질 수 있음
+DB 복구 필요 가능
+✔️ 2. File-consistent backup
+
+👉 “파일 시스템 레벨까지 정리된 상태”
+
+특징
+OS가 파일 flush 수행
+open file / cache 정리
+file system consistency 보장
+비유
+
+👉 “모든 파일 저장하고 정상 종료한 상태”
+
+장점
+파일 손상 거의 없음
+OS 레벨 안전
+단점
+application transaction consistency 없음
+✔️ 3. Application-consistent backup ⭐ (가장 중요)
+
+👉 “앱까지 완전히 안전한 상태”
+
+특징
+VSS (Windows) 또는 pre/post script 사용
+DB transaction flush
+memory state 정리
+application quiescing 수행
+비유
+
+👉 “DB backup + 서비스 정상 종료 상태”
+
+장점
+DB / transaction 안전
+restore 시 데이터 안정성 최고
+단점
+가장 느림
+오버헤드 큼
+
+✔️ 정답
+
+👉 High priority rehydration
+
+✔️ 문제 핵심
+Azure Blob Storage
+Archive tier (가장 저렴하지만 가장 느림)
+여러 blob 복구 필요
+크기: < 10 GB
+👉 “as quickly as possible” (최대한 빠르게)
+✔️ Rehydration이란?
+
+👉 Archive tier에 있는 데이터를 다시 “Hot / Cool”로 복구하는 과정
+
+✔️ 선택 옵션 2개
+🔵 Standard priority
+기본 옵션
+수 시간 ~ 최대 15시간+
+일반적인 복구
+🔴 High priority ⭐ (정답)
+우선순위 큼
+다른 작업보다 먼저 처리
+훨씬 빠른 복구
+✔️ 문제 조건 분석
+“urgent business requirement”
+“as quickly as possible”
+small size (<10 GB)
+
+👉 무조건:
+
+✔ High priority
+
+✔️ 중요한 포인트
+
+👉 High priority는:
+
+비용 더 높음
+하지만 SLA 상 가장 빠름
+✔️ 구조 이해
+Archive Blob
+   ↓ (rehydration request)
+High priority queue
+   ↓
+Hot/Cool tier restored faster
+✔️ 시험 함정
+
+❌ Standard priority
+→ 일반 복구 (빠르지 않음)
+
+❌ “set tier to Hot only”
+→ rehydration 개념이 아님
+
+✔️ 한 줄 정리
+
+👉 urgent restore from Archive tier → High priority rehydration
+
+✔️ 인터뷰용 한마디
+
+“For urgent access to archived blobs, we use high priority rehydration to accelerate the process of moving data from the archive tier to hot or cool tiers.”
+
+원하면
+👉 
+Hot vs Cool vs Archive 완전 비교
+👉 
+rehydration 비용 + 시간 SLA
+
+이것도 시험용으로 깔끔하게 정리해줄게.
+
+You have an Azure subscription that contains several storage accounts. You need to configure diagnostic settings to send resource logs from the storage accounts to a Log Analytics workspace. You want to use category groups to simplify log collection. Which two category groups are available when configuring diagnostic settings? Each correct answer presents part of the solution.
+
+결론부터 바로 잡자 👍
+
+👉 정답은:
+
+allLogs
+auditLogs
+✔️ 왜 이게 맞냐
+
+Azure Diagnostic Settings에서 category group은 미리 정의된 로그 묶음인데,
+Storage account에서도 동일하게 아래 두 개가 제공됨:
+
+🔵 1. allLogs
+
+👉 모든 resource logs 포함
+
+가장 포괄적인 옵션
+“다 모아라”일 때 사용
+🔵 2. auditLogs
+
+👉 감사/보안 관련 로그만
+
+access / authentication 관련
+compliance 목적
+✔️ 주의 (헷갈리는 포인트)
+
+❌ audit → 틀림 (정확한 이름 아님)
+✔ auditLogs → 맞음
+
+✔️ 시험 포인트
+
+문제 키워드:
+
+“category groups”
+“simplify log collection”
+
+👉 이거 나오면 거의 무조건:
+
+✔ allLogs
+✔ auditLogs
+
+✔️ 한 줄 정리
+
+👉 Azure diagnostic settings의 category groups는 allLogs와 auditLogs 두 가지
+
+필요하면
+👉 실제 portal에서 어디서 설정하는지
+👉 logs vs metrics vs categories 차이
+
+짧게 실무 기준으로도 정리해줄게.
+
+무슨 카테고리 존재해?
+
+이 문제 포인트는 하나야:
+
+👉 왜 “Set rotation reminder”가 비활성화(회색)냐?
+
+✔️ 정답
+
+👉 Key creation time (keyCreationTime) 속성을 설정해야 한다
+
+✔️ 왜 이런 일이 발생하냐
+
+Azure Storage access key는:
+
+원래 “언제 생성됐는지” 정보가 없음 (기존 키들)
+
+그런데 key expiration policy는:
+
+👉 “생성 시점 기준으로 만료 계산”
+
+이 필요함
+
+✔️ 그래서 조건
+
+👉 key expiration policy를 쓰려면:
+
+각 access key에 대해
+👉 creation time이 정의되어 있어야 함
+✔️ 해결 방법
+
+👉 기존 key는 creation time이 없으므로:
+
+✔ key를 regenerate 해야 함
+
+✔️ 실제 동작
+Access key regenerate
+Azure가 자동으로 keyCreationTime 설정
+이제:
+👉 “Set rotation reminder” 활성화됨
+✔️ 흐름
+Old key (no creation time)
+   ↓
+Regenerate key
+   ↓
+keyCreationTime assigned
+   ↓
+Rotation policy enabled
+✔️ 시험 포인트
+
+👉 “rotation reminder disabled / grayed out”
+
+→ 무조건:
+
+✔ regenerate key to set creation time
+
+✔️ 한 줄 정리
+
+👉 Storage key rotation policy를 쓰려면 먼저 key를 regenerate해서 creation time을 설정해야 한다
+
+✔️ 인터뷰용 한마디
+
+“The rotation reminder requires a key creation timestamp, so regenerating the storage account keys enables the key expiration policy.”
+
+원하면
+👉 
+access key vs SAS vs Azure AD auth (보안 관점 핵심 비교)
+👉 
+왜 key rotation이 중요한지 (실무)
+
+이것도 같이 정리해줄게.
+
+좋아, 이건 네가 짚은 게 맞고 내가 아까 단순화해서 설명하다가 시험 기준을 놓친 거야. 정리 제대로 해줄게.
+
+✔️ 정답 (시험 기준)
+
+👉 CSV에서 필수 컬럼 4개:
+
+Name (Display Name)
+User principal name
+Initial password
+Block sign in (Yes/No)
+✔️ 왜 이렇게 되냐 (핵심 차이)
+
+아까 내가 말한 건 “논리적으로 필요한 최소 속성” 기준이고,
+👉 시험은 “CSV 템플릿 기준”으로 묻는 문제야.
+
+✔️ 중요한 포인트
+
+Microsoft Entra Admin Center에서 제공하는 CSV 템플릿은:
+
+👉 단순히 필드가 아니라
+👉 업로드 시 반드시 채워야 하는 컬럼이 정해져 있음
+
+✔️ 각 필드 의미
+1. Name
+Display name
+사용자 이름 표시용
+2. User principal name (UPN)
+로그인 ID
+필수
+3. Initial password
+최초 로그인 비밀번호
+CSV 업로드에서는 반드시 필요
+4. Block sign in (Yes/No)
+계정 활성화 여부
+Yes → 로그인 차단
+No → 로그인 가능
+
+👉 CSV에서는 반드시 값 필요
+
+✔️ 왜 Password랑 Block sign in이 필요하냐
+
+Portal CSV 방식은:
+
+👉 “완전한 사용자 객체 생성”을 요구
+
+그래서:
+
+password 없이 생성 ❌
+상태 없이 생성 ❌
+✔️ 시험에서 자주 틀리는 이유
+
+헷갈리는 기준 2개:
+
+기준	결과
+API / 개념 기준	UPN + Display name
+CSV template 기준 (시험)	4개 필수 ⭐
+✔️ 한 줄 정리
+
+👉 Entra ID CSV 사용자 생성 필수 필드는 Name, UPN, Initial password, Block sign in 4개다
+
+✔️ 시험 팁
+
+👉 문제에 이 키워드 나오면 무조건 4개:
+
+“CSV template”
+“bulk user creation”
+“Entra admin center”
+
+필요하면
+👉 Graph API vs CSV vs PowerShell user creation 차이
+👉 시험에서 자주 틀리는 Entra ID 문제 TOP 10
+
+이것도 깔끔하게 정리해줄게.
+
+✔️ 정답
+
+👉 C:\WindowsAzure\Logs\Plugins\Microsoft.Compute.CustomScriptExtension\
+
+✔️ 문제 핵심
+Windows VM
+Custom Script Extension 실패
+👉 extension 실행 로그 위치 찾기
+✔️ Azure VM Extension 로그 위치 (Windows)
+
+모든 VM extension 로그는 기본적으로:
+
+C:\WindowsAzure\Logs\Plugins\<Publisher>.<ExtensionName>\
+✔️ Custom Script Extension 경로
+C:\WindowsAzure\Logs\Plugins\Microsoft.Compute.CustomScriptExtension\
+
+👉 여기에:
+
+실행 로그
+에러 메시지
+script 실행 결과
+
+모두 있음
+
+✔️ 추가로 보면 좋은 위치
+✔️ 실행된 스크립트 파일
+C:\Packages\Plugins\Microsoft.Compute.CustomScriptExtension\
+
+👉 실제 다운로드된 script 확인 가능
+
+✔️ 구조
+VM1
+ └── C:\WindowsAzure\Logs\Plugins\
+       └── Microsoft.Compute.CustomScriptExtension\
+             └── extension logs
+✔️ 시험 포인트
+
+👉 “VM extension logs 어디?”
+
+→ 항상:
+
+✔ C:\WindowsAzure\Logs\Plugins\...
+
+✔️ 헷갈리는 오답
+
+❌ Event Viewer
+→ 일부 정보만 있음
+
+❌ Azure Portal logs
+→ 상세 execution 로그 부족
+
+✔️ 한 줄 정리
+
+👉 Custom Script Extension 로그는 C:\WindowsAzure\Logs\Plugins\Microsoft.Compute.CustomScriptExtension\ 경로에서 확인한다
+
+✔️ 인터뷰용 한마디
+
+“Custom Script Extension logs on Windows VMs are stored under the WindowsAzure Logs Plugins directory, specifically under the Microsoft.Compute.CustomScriptExtension folder.”
+
+원하면
+👉 Linux VM에서는 어디 보는지
+👉 extension 실패할 때 가장 흔한 원인 TOP 5
+
+이것도 같이 정리해줄게.
+
+You have an Azure Storage account with a blob container. You need to provide time-limited access to external partners. The solution must allow you to revoke access to the container without regenerating storage account keys. Which type of SAS should you use?
+✔️ 정답
+
+👉 Service SAS (with a stored access policy)
+
+✔️ 문제 핵심
+
+요구사항:
+
+Blob container 접근 권한 제공
+⏱️ time-limited access
+❗ 나중에 revoke 가능해야 함
+❗ storage account key 재생성 없이
+
+✔️ 정답
+
+👉 Disable shared key access (Allow shared key access = Disabled)
+
+✔️ 문제 핵심
+
+요구사항:
+
+❗ Microsoft Entra ID 기반 인증만 허용
+❌ Storage account access key 사용 금지
+✔ User Delegation SAS는 허용
+✔️ 핵심 개념
+
+Azure Storage 인증 방식 3가지:
+
+Shared Key (Access Key) ❌ 막아야 함
+Service SAS / Account SAS → Shared Key 기반 ❌
+User Delegation SAS → Entra ID 기반 ✔
+✔️ 해결 방법
+
+👉 Storage account 설정:
+
+Allow shared key access = Disabled
+✔️ 이렇게 하면 결과
+방식	결과
+Access Key	❌ 차단
+Service SAS	❌ 차단 (key 기반이라 같이 막힘)
+Account SAS	❌ 차단
+User Delegation SAS	✔ 계속 사용 가능
+✔️ 왜 이게 중요하냐
+
+👉 User Delegation SAS는:
+
+Entra ID로 인증
+RBAC 기반 권한
+key 없이도 SAS 생성 가능
+✔️ 구조
+Entra ID
+   ↓
+User Delegation SAS ✔
+
+Shared Key ❌ (disabled)
+   ↓
+Service SAS ❌
+Account SAS ❌
+✔️ 시험 포인트
+
+👉 키워드:
+
+“prevent access keys”
+“use Entra ID”
+“allow user delegation SAS”
+
+→ 정답:
+
+✔ Disable shared key access
+
+✔️ 헷갈리는 오답
+
+❌ regenerate keys
+→ 여전히 key 사용 가능
+
+❌ rotate keys
+→ 의미 없음
+
+❌ remove SAS
+→ user delegation까지 막힘
+
+✔️ 한 줄 정리
+
+👉 Entra ID만 쓰게 하려면 Shared Key access를 비활성화해야 한다 (User Delegation SAS는 유지됨)
+
+✔️ 인터뷰용 한마디
+
+“By disabling shared key access, we enforce Entra ID–based authentication while still allowing user delegation SAS, which relies on Azure AD instead of account keys.”
+
+원하면
+👉 
+RBAC + SAS + Key 인증 구조 한 번에 정리
+👉 
+실제 보안 설계 (기업에서 어떻게 막는지)
+
+이것도 이어서 정리해줄게.
+
+좋은 포인트 잡았고, 이건 시험 함정 + 플랫폼 제한 문제야. 내가 아까 일반 개념만 말해서 틀린 부분이 있었어. 정확하게 정리해줄게.
+
+✔️ 정답 (시험 기준)
+
+👉 Use Azure Pipelines or GitHub Actions to perform a slot swap after deployment
+
+✔️ 왜 Auto Swap이 안 되냐
+
+핵심 제한:
+
+❌ Auto swap is NOT supported for Linux Web Apps
+
+✔️ 문제 상황 다시 보면
+App Service (Linux)
+staging slot 있음
+자동 swap 필요
+
+👉 여기서 중요한 함정:
+
+“Auto Swap 기능 자체가 지원되지 않는 OS/모델”
+
+✔️ Azure App Service slot 지원 차이
+기능	Windows App Service	Linux App Service
+Auto Swap	✔ 지원	❌ 지원 안 함
+Manual Swap	✔	✔
+CI/CD swap step	✔	✔ (필수)
+✔️ 그래서 정답 구조
+
+👉 Linux에서는 자동 swap 대신:
+
+✔ CI/CD pipeline에서 처리
+Azure Pipelines
+GitHub Actions
+
+👉 deployment 후 step으로:
+
+Deploy → staging
+   ↓
+Warm-up
+   ↓
+Pipeline step: az webapp deployment slot swap
+   ↓
+Production
+✔️ 실제 명령어
+az webapp deployment slot swap \
+  --name App1 \
+  --resource-group RG1 \
+  --slot staging \
+  --target-slot production
+✔️ 핵심 개념
+
+👉 Linux App Service에서는:
+
+“swap is not a platform feature → it becomes a CI/CD responsibility”
+
+✔️ 왜 이런 구조냐
+
+Linux App Service:
+
+container-based architecture
+slot swap 자동 warm-up 관리 제한
+
+👉 그래서 Microsoft가:
+
+“pipeline에서 직접 control 하라”
+
+로 바꿈
+
+✔️ 시험 포인트
+
+👉 키워드:
+
+Linux Web App
+auto swap
+staging slot
+
+→ 함정:
+
+❌ Auto Swap (Windows만 가능)
+
+✔ CI/CD swap step
+
+✔️ 한 줄 정리
+
+👉 Linux App Service에서는 Auto Swap이 지원되지 않기 때문에 CI/CD 파이프라인에서 swap 단계를 직접 수행해야 한다
+
+✔️ 인터뷰용 한마디
+
+“Auto swap is not supported for Linux App Service slots, so the swap operation must be implemented as a post-deployment step in a CI/CD pipeline such as Azure Pipelines or GitHub Actions.”
+
+원하면
+👉 Windows vs Linux App Service 차이 (시험 핵심)
+👉 slot swap 내부 동작 (왜 Linux 제한 있는지)
+
+이것도 이어서 정리해줄게.
+
+✔️ 정답
+
+👉 Application rule with TLS inspection (HTTPS filtering using FQDN in Azure Firewall Premium)
+
+✔️ 핵심 문제 해석
+
+요구사항:
+
+Azure Firewall Premium
+outbound HTTP/S traffic 필터링
+특정 FQDN만 허용
+❗ 같은 IP로 resolve되는 서로 다른 FQDN도 구분해야 함
+
+👉 즉:
+
+“IP 기반이 아니라 FQDN 기반 + HTTPS 내부까지 확인 필요”
+
+✔️ 핵심 개념
+🔵 Application rules (정답)
+HTTP / HTTPS 트래픽 제어
+FQDN 기반 허용/차단
+Layer 7 (application layer)
+🔥 + TLS inspection (중요)
+
+HTTPS는 기본적으로 암호화되어 있어서:
+
+IP만 보면 구분 불가
+같은 IP로 여러 도메인 가능 (CDN 등)
+
+👉 그래서 필요:
+
+TLS inspection (SSL decryption)
+
+✔️ 왜 이게 필요하냐
+
+문제 핵심:
+
+“same IP address but different FQDNs”
+
+👉 이건 반드시:
+
+✔ HTTP Host header / TLS SNI 확인 필요
+✔ 즉 L7 inspection 필요
+
+✔️ Azure Firewall Premium 기능
+
+Azure Firewall Premium은:
+
+TLS inspection 지원 ✔
+FQDN filtering 강화 ✔
+URL filtering ✔
+✔️ 구조
+Client → Azure Firewall Premium
+            ↓
+     TLS inspection (decrypt)
+            ↓
+     Application Rule
+        - FQDN1 allowed
+        - FQDN2 blocked
+✔️ Rule 종류 비교
+Rule type	사용 여부
+Network rule	❌ (IP 기반이라 FQDN 구분 불가)
+NAT rule	❌
+Application rule	✔ (정답)
+✔️ 핵심 포인트
+
+👉 “FQDN filtering + same IP differentiation”
+
+→ 무조건:
+
+✔ Application rule + TLS inspection
+
+✔️ 왜 Network rule로 안 되냐
+
+Network rule:
+
+IP + port 기반
+DNS resolution 이후 IP만 봄
+
+👉 그래서:
+
+❌ FQDN 구분 불가능
+
+✔️ 한 줄 정리
+
+👉 Azure Firewall Premium에서는 TLS inspection이 포함된 Application Rule을 사용해야 동일 IP를 공유하는 서로 다른 FQDN을 구분할 수 있다
+
+✔️ 인터뷰용 한마디
+
+“To differentiate between FQDNs resolving to the same IP, we must use Azure Firewall Premium application rules with TLS inspection, enabling layer 7 visibility of HTTPS traffic.”
+
+원하면
+👉 
+Network rule vs Application rule vs DNAT 완전 비교
+👉 
+TLS inspection 내부 동작 (SNI, certificate interception)
+
+✔️ 정답
+
+👉 Encryption at host
+
+✔️ 핵심 문제 해석
+
+요구사항:
+
+Windows VM (VM1)
+temp disk + disk cache까지 암호화 필요
+❗ VM CPU 사용 없이 처리
+at rest encryption
+✔️ 선택지 핵심
+🔵 Azure Disk Encryption (ADE)
+BitLocker / DM-Crypt 사용
+❌ VM CPU 사용
+❌ OS inside encryption
+🟢 Encryption at host ⭐ (정답)
+Azure platform level encryption
+host OS layer에서 처리
+✔ VM CPU 사용 없음
+✔ temp disk + cache 포함
+✔️ 왜 Encryption at host가 정답이냐
+
+문제 핵심 키워드:
+
+“without using VM CPU resources”
+
+👉 이건 바로:
+
+✔ host-level encryption only
+
+✔️ 구조
+Azure Host (Hypervisor level encryption)
+        ↓
+VM disk + temp disk + cache
+        ↓
+Encrypted before reaching VM
+✔️ 각 방식 비교
+방식	CPU 사용	temp disk 포함	위치
+Azure Disk Encryption	❌ VM CPU 사용	❌ 일부 제한	VM 내부
+Encryption at host	✔ 없음	✔ 포함	Hypervisor
+✔️ 중요한 포인트
+
+👉 “temp disk + cache” 포함하려면:
+
+✔ Encryption at host만 가능
+
+✔️ 시험 트릭
+
+문장 키워드:
+
+“no VM CPU usage”
+“temp disk encryption”
+“disk cache encryption”
+
+👉 100%:
+
+✔ Encryption at host
+
+✔️ 한 줄 정리
+
+👉 Encryption at host encrypts all VM data including temporary disks and caches at the hypervisor level without using VM CPU
+
+✔️ 인터뷰용 한마디
+
+“Encryption at host performs server-side encryption at the hypervisor layer, ensuring that even temporary disks and caches are encrypted without consuming VM compute resources.”
+
+원하면
+👉 Encryption at host vs ADE vs SSE (Storage Service Encryption)
+👉 Azure VM disk encryption 전체 구조 그림
+
+이것도 시험용으로 깔끔하게 정리해줄게.
+
+✔️ 정답 핵심
+
+👉 The root management group is the top-level scope in the Azure management group hierarchy and all subscriptions are ultimately under it.
+
+✔️ 문제 핵심 해석
+
+질문:
+
+“root management group의 특징은?”
+
+✔️ Azure Management Group 구조
+Tenant Root Group (Root Management Group)
+        ↓
+   Management Group(s)
+        ↓
+     Subscriptions
+        ↓
+      Resources
+✔️ 핵심 특징
+🔵 Root Management Group
+
+👉 Azure hierarchy에서 가장 위
+
+모든 management group의 최상위
+모든 subscription은 결국 이 아래에 속함
+✔️ 중요한 특징들
+✔️ 1. 자동 생성됨
+Azure AD tenant 생성 시 자동 생성
+✔️ 2. 모든 subscription 포함 구조의 최상위
+직접 보이진 않아도 구조적으로 존재
+✔️ 3. 정책 상속의 최상위
+Azure Policy / RBAC 적용 시 최상위 scope
+✔️ 4. 이름 변경 불가
+“Tenant Root Group” 고정
+✔️ 핵심 포인트
+
+👉 가장 중요한 문장:
+
+“All Azure subscriptions and management groups ultimately exist under the root management group.”
+
+✔️ 시험 함정
+
+❌ 삭제 가능
+→ 불가능
+
+❌ 여러 개 존재
+→ 단 하나만 존재
+
+❌ subscription 위에 subscription 있음
+→ 구조상 불가능
+
+✔️ 한 줄 정리
+
+👉 Root management group is the top-level container in Azure hierarchy under which all subscriptions and management groups reside.
+
+✔️ 인터뷰용 한마디
+
+“The root management group is the highest level in the Azure management group hierarchy, and all subscriptions are ultimately contained under it for policy and access control inheritance.”
+
+원하면
+👉 
+Management Group vs Subscription vs Resource Group 완전 비교
+👉 
+Azure Policy inheritance 구조 (시험 핵심)
+
+이것도 같이 정리해줄게.
+
+✔️ 정답
+
+👉 Time Grain = Monthly (PT1M? ❌ → PT1M is minute, correct is PT1M? actually monthly = PT1M? → ❗ correct answer: Monthly (P1M))
+
+✔️ 핵심 개념
+
+Azure Cost Management Budget에서:
+
+👉 Time Grain = budget evaluation period
+
+✔️ Time Grain 옵션
+
+대표적으로:
+
+Monthly (P1M) ⭐
+Quarterly (P3M)
+Yearly (P1Y)
+✔️ 문제 요구사항
+
+“budget must reset automatically every three months”
+
+👉 3개월 주기 = 분기 (quarterly)
+
+✔️ 따라서 정답
+
+👉 P3M (Quarterly)
+
+✔️ 구조
+Budget cycle:
+Start → 3 months → reset → next cycle
+       (P3M)
+✔️ 왜 P3M이냐
+값	의미
+P1M	monthly
+P3M	quarterly ⭐
+P1Y	yearly
+✔️ 핵심 포인트
+
+👉 “reset automatically every three months”
+
+→ 무조건:
+
+✔ Quarterly (P3M)
+
+✔️ 시험 함정
+
+❌ Monthly
+→ 1개월
+
+❌ Yearly
+→ 12개월
+
+✔️ 한 줄 정리
+
+👉 Azure Budget Time Grain P3M means the budget resets every 3 months (quarterly).
+
+✔️ 인터뷰용 한마디
+
+“To reset an Azure budget every three months, we set the time grain to P3M, which corresponds to a quarterly budget cycle.”
+
+원하면
+👉 
+Azure Budget vs Cost Alerts 차이
+👉 
+P1M / P3M / P1Y 실제 운영 시나리오
+
+이것도 시험용으로 깔끔하게 정리해줄게.
+
+맞아, 이건 내가 아까 완전히 잘못 짚었어. 시험 기준으로 정확하게 바로잡아줄게.
+
+✔️ 정답
+
+👉 Id
+
+✔️ 핵심 개념
+
+Azure custom role JSON 생성 시:
+
+새 role 생성이면 Id는 반드시 null이어야 함
+
+✔️ 왜 Id가 null이어야 하냐
+
+Azure RBAC에서:
+
+Id = role definition의 고유 GUID
+기존 role update 시에는 필요
+새로 생성할 때는 Azure가 자동 생성
+
+👉 따라서:
+
+✔ 새 role 생성 → Id: null
+✔ Azure가 자동으로 GUID 생성
+
+✔️ 구조
+{
+  "Name": "VM Operator",
+  "Id": null,
+  "IsCustom": true,
+  "Description": "Can monitor and restart VMs",
+  "Actions": [
+    "Microsoft.Compute/virtualMachines/read",
+    "Microsoft.Compute/virtualMachines/restart/action"
+  ],
+  "NotActions": [],
+  "AssignableScopes": [
+    "/subscriptions/xxxx-xxxx-xxxx"
+  ]
+}
+✔️ AssignableScopes는 왜 틀리냐
+
+👉 내가 아까 말한 부분이 여기서 틀린 핵심인데:
+
+AssignableScopes는 필수 값
+null ❌ 불가능
+
+👉 반드시:
+
+✔ subscription / resource group scope 지정해야 함
+
+✔️ 역할 구분
+Property	의미	새 생성 시
+Id	role unique identifier	✔ null
+AssignableScopes	적용 범위	❌ 반드시 값 필요
+✔️ 시험 포인트
+
+👉 질문:
+
+“Which property must be set to null when creating custom role?”
+
+→ 항상:
+
+✔ Id
+
+✔️ 왜 Id만 null이냐
+Azure가 GUID 자동 생성
+중복 방지
+role definition system integrity 유지
+✔️ 한 줄 정리
+
+👉 Custom role 생성 시 Id는 Azure가 자동 생성하므로 JSON에서는 반드시 null로 설정해야 한다
+
+✔️ 인터뷰용 한마디
+
+“When creating a custom Azure RBAC role, the Id property must be set to null so that Azure can automatically generate a unique role definition identifier.”
+
+원하면
+👉 
+Azure RBAC JSON 구조 완전 정리 (시험 단골)
+👉 
+built-in role vs custom role update 차이
+
+이것도 이어서 정리해줄게.
+
+맞아, 이건 내가 잘못 설명했어. 정확히 바로잡을게.
+
+✔️ 정답
+
+👉 Alert and deny only
+
+✔️ 핵심 규칙 (시험 포인트)
+
+Azure Firewall Policy inheritance에서 Threat Intelligence mode는 “완화”가 아니라 “동일하거나 더 strict”만 가능해.
+
+✔️ 모드 우선순위
+
+Threat Intelligence mode는 이렇게 “강도”가 있음:
+
+Mode	강도
+Off	약함
+Alert	중간
+Alert and deny	가장 강함 ⭐
+✔️ 핵심 규칙
+
+👉 child policy는:
+
+parent보다 더 약하게 설정할 수 없음
+
+즉:
+
+parent = Alert and deny (최강)
+child = 더 강하게? ❌ 불가능
+child = 더 약하게? ❌ 불가능
+✔️ 결과
+Parent	Child 가능
+Alert and deny	👉 Alert and deny only
+✔️ 왜 헷갈렸냐 (중요)
+
+내가 아까 착각한 부분:
+
+👉 “child can be more permissive”라고 생각했는데
+
+Azure Firewall Policy는 반대로:
+
+보안 정책 inheritance는 항상 강화 방향만 허용
+
+✔️ 구조
+Parent: Alert and deny (max strict)
+        ↓
+Child: must match
+        → Alert and deny only
+✔️ 핵심 시험 포인트
+
+👉 keyword:
+
+“inherits from parent”
+“threat intelligence mode”
+
+→ 규칙:
+
+✔ cannot reduce security
+✔ can only match or increase strictness
+
+✔️ 한 줄 정리
+
+👉 If the parent policy is set to Alert and deny (highest level), the child policy can only use Alert and deny.
+
+✔️ 인터뷰용 한마디
+
+“In Azure Firewall Policy inheritance, threat intelligence settings can only be equal or more restrictive than the parent, so when the parent is set to Alert and deny, the child must also use Alert and deny.”
+
+원하면
+👉 
+Azure Firewall Policy inheritance 전체 구조 (rule collections + threat intel + DNS proxy)
+👉 
+“왜 security inheritance는 항상 restrictive-only인지”
+
+이거 실무 관점으로도 깔끔하게 정리해줄게.
+
+믿을 수가 없어
+
+그렇게 느끼는 게 정상이다. 이건 네가 헷갈린 문제가 아니라 **문서 규칙이 “직관이랑 반대로 보이는 케이스”**라서 그래.
+
+이번 건은 깔끔하게 사실만 정리할게.
+
+좋은 질문이고, 결론부터 말하면:
+
+👉 AWS Security Group도 stateful이다.
+
+✔️ Azure NSG vs AWS Security Group 비교
+기능	Azure NSG	AWS Security Group
+상태 저장 (stateful)	✔ Yes	✔ Yes
+inbound 허용 시 return traffic	자동 허용	자동 허용
+outbound rule 필요 여부	선택적	선택적
+deny rule	✔ 지원	❌ 기본적으로 없음
+✔️ Stateful이 의미하는 것
+
+👉 “연결을 기억한다”
+
+예:
+
+inbound TCP 80 허용
+클라이언트 요청 들어옴
+서버 응답 traffic은 자동 허용됨
+✔️ AWS Security Group 특징
+instance-level firewall
+stateful
+return traffic 자동 허용
+
+👉 그래서 outbound rule이 있어도 없어도 응답은 가능
+
+✔️ Azure NSG 특징
+subnet / NIC level
+stateful
+동일하게 return traffic 자동 허용
+✔️ 중요한 차이 (시험 자주 나옴)
+❗ Azure NSG
+allow + deny rules 있음
+❗ AWS Security Group
+deny rule 없음
+default = allow all outbound, deny inbound
+✔️ 구조 비교
+Azure NSG:
+Inbound allow → outbound return auto allowed (stateful)
+
+AWS SG:
+Inbound allow → response automatically allowed (stateful)
+✔️ 한 줄 정리
+
+👉 AWS Security Group is stateful, just like Azure NSG, meaning return traffic is automatically allowed without explicit outbound rules.
+
+✔️ 인터뷰용 한마디
+
+“Both Azure NSG and AWS Security Groups are stateful firewalls, so once inbound traffic is allowed, return traffic is automatically permitted without requiring explicit outbound rules.”
+
+원하면
+👉 
+Azure NSG vs AWS SG vs Azure Firewall 차이 (시험 핵심 3종 비교)
+👉 
+stateless firewall (AWS NACL)까지 비교
+
+맞아, 이건 네가 가져온 설명이 정확하고 내가 이전 답에서 핵심을 잘못 잡았어. 바로 정리해줄게.
+
+✔️ 정답
+
+👉 Yes, the user can delete storage accounts.
+
+✔️ 핵심 개념 (Azure RBAC 진짜 규칙)
+
+Azure RBAC는:
+
+Additive model (합산 모델)
+
+✔️ 중요한 포인트
+🔵 1. 여러 역할은 “합쳐진다”
+Role A + Role B = 권한 합산
+
+👉 deny 같은 중앙 차단 개념 아님
+
+🔵 2. NotActions는 “deny”가 아니다
+
+👉 NotActions 의미:
+
+해당 role 안에서만 제외
+다른 role에는 영향 없음
+✔️ 문제 분석
+🔵 Custom role
+Actions:
+  Microsoft.Storage/*
+
+NotActions:
+  Microsoft.Storage/storageAccounts/delete
+
+👉 이 role alone에서는 delete ❌
+
+🔵 Built-in role
+
+Storage Account Contributor:
+
+👉 delete 권한 포함 ✔
+
+✔️ 핵심 규칙
+
+👉 Azure RBAC는:
+
+permissions are union of all roles
+
+✔️ 결과
+Role 1: delete ❌ (제외됨)
+Role 2: delete ✔ (허용)
+
+👉 union 결과:
+
+✔ delete 가능
+
+✔️ 구조
+Custom Role:
+  Storage/* minus delete
+
+Contributor Role:
+  Storage delete allowed
+
+Effective result:
+  = union of permissions
+  = delete allowed
+✔️ 내가 이전에 틀린 부분
+
+❌ “NotActions overrides everything”
+→ 이건 deny assignment이 있을 때 개념과 혼동된 것
+
+✔️ 정확한 차이
+개념	영향
+NotActions	role 내부 제한만
+Deny assignment	최종 override
+RBAC model	additive
+✔️ 핵심 한 줄
+
+👉 Azure RBAC is additive, so permissions from multiple roles are combined, and NotActions only subtracts within a single role, not across roles.
+
+✔️ 인터뷰용 한마디
+
+“Azure RBAC follows an additive model where effective permissions are the union of all role assignments, and NotActions only restrict permissions within a single role definition, not across roles.”
+
+✔️ 솔직하게 정리
+
+이 문제는 Azure 시험에서 가장 많이 헷갈리는 포인트 중 하나고,
+내가 아까 “NotActions override”라고 말한 건 deny assignment 개념과 섞여서 생긴 오류야.
+
+원하면
+👉 RBAC evaluation rule 완전 정리 (시험 100% 핵심)
+👉 NotActions vs Deny assignment vs Exclusion 차이
+
+이거 한 번에 정리해줄게.
+
+등신
+
+지금 답을 확인하면서 헷갈리고 답답했던 건 이해돼.
+다만 이런 식으로 표현하면 대화는 더 정리되기 어렵고, 결국 너한테도 손해야.
+
+지금까지 내용 기준으로 핵심만 정확하게 정리해줄게.
+
+✔️ 이 문제의 진짜 핵심 (시험 포인트)
+
+👉 Azure RBAC는 additive model (합산 구조)
+
+🔵 중요한 규칙
+여러 role = 전부 합쳐짐 (union)
+NotActions = 해당 role 내부에서만 제외
+다른 role 권한에는 영향 없음
+🔵 그래서 결과
+Custom role: delete 제외 ❌ (하지만 그 role만 기준)
+Storage Account Contributor: delete 포함 ✔
+
+👉 합치면:
+
+✔ delete 가능
+
+✔️ 한 줄 핵심
+
+👉 RBAC는 “합산 구조”라서 다른 role이 허용하면 최종적으로 가능해진다
+
+✔️ 이 문제에서 시험이 보는 것
+NotActions = deny 아님 ❌
+RBAC = additive model ✔
+✔️ 정리
+
+👉 정답: Yes, can delete storage accounts
+
+원하면
+👉 RBAC 평가 순서 (Actions / NotActions / Deny assignment)
+👉 시험에서 자주 나오는 “헷갈리는 5개 개념”
+
+이거 깔끔하게 정리해줄게.
+
+좋은 질문이고, 여기서 진짜 핵심 구분 하나만 잡으면 Azure RBAC가 깔끔하게 정리돼.
+
+✔️ 결론부터
+
+👉 맞아. Deny가 있으면 내가 처음에 말했던 방향(“차단됨”)이 맞게 될 수 있음.
+하지만 조건이 있어.
+
+✔️ 3가지 개념 완전 분리
+🔵 1. Actions / Role Assignments
+기본적으로 허용(allow)
+🔵 2. NotActions
+❌ deny 아님
+👉 “이 role 안에서만 빼는 것”
+🔴 3. Deny Assignments ⭐ (이게 핵심)
+Azure에서 진짜 강한 차단 규칙
+RBAC보다 우선순위 높음
+Management Group / Azure Blueprints / Policy 등에서 사용
+✔️ 우선순위 (시험 핵심)
+
+👉 Azure 권한 평가 순서:
+
+Deny Assignment (최우선)
+Role Assignments (Allow, additive)
+NotActions (role 내부 제외)
+✔️ 그래서 질문 답
+❓ “NotActions 대신 Deny였다면?”
+
+👉 맞아:
+
+Deny Assignment이 있었으면
+다른 role이 허용해도
+
+✔ 최종 결과: 무조건 DENY
+
+✔️ 비교
+🟡 현재 문제 (NotActions)
+Additive model 유지
+다른 role이 override 가능
+👉 결과: Yes (delete 가능)
+🔴 가정 (Deny 있었다면)
+explicit deny 존재
+👉 결과: No (무조건 차단)
+✔️ 구조 그림
+Case 1: NotActions
+  Role A: deny delete (local only)
+  Role B: allow delete
+  → RESULT: ALLOW (union wins)
+
+Case 2: Deny Assignment
+  Explicit deny delete
+  → RESULT: DENY (always wins)
+✔️ 핵심 한 줄
+
+👉 NotActions는 soft exclusion (role 내부), Deny Assignment는 hard block (system-wide override)
+
+✔️ 정확한 정리
+NotActions → “이 role에서만 빼기”
+Deny Assignment → “아무 role보다 우선해서 차단”
+RBAC 기본 → additive
+✔️ 결론
+
+👉 네 질문에 답하면:
+
+✔ “Deny였다면 내가 처음 말한 방향(차단)이 맞을 수도 있냐?”
+→ 맞다 (그건 정확한 이해)
+
+원하면 여기서 
+진짜 중요한 거 하나 더 정리해줄게:
+
+👉 “
+시험에서 NotActions vs Deny 구분 100% 안 틀리는 방법”
+이건 AZ-104 / AZ-305에서 진짜 자주 나오는 함정이야.
+
+가능/불가능을 정확히 구분하면 이거야.
+
+✔️ 결론
+
+👉 NotActions / NotDataActions “만으로” 요구사항을 만족할 수는 없음
+
+하지만:
+
+👉 Actions + DataActions를 먼저 정의하고, 그 일부를 빼는 용도로는 사용 가능
+
+✔️ 이 문제 요구사항 다시 보면
+
+read storage account properties
+read and write blob data
+
+👉 즉 “허용”이 목적
+
+✔️ 각 필드 역할
+🔵 Actions
+관리 plane 권한 (ARM)
+storage account properties read 포함
+🟢 DataActions
+데이터 plane 권한
+blob read/write 포함
+🔴 NotActions
+Actions에서 일부 제외
+🔴 NotDataActions
+DataActions에서 일부 제외
+✔️ 핵심 포인트
+
+👉 NotActions 계열은:
+
+❌ “권한을 부여하는 기능이 아님”
+✔ “이미 허용된 것에서 빼는 기능”
+
+✔️ 그래서 이 문제에서는
+
+우리가 원하는 건:
+
+✔ read storage account
+✔ read/write blob
+
+👉 즉 “추가 허용”이 필요함
+
+✔️ NotActions를 쓰면 안 되는 이유
+
+예:
+
+Actions: Storage/*
+NotActions: delete
+
+👉 이건 “delete 빼기” 용도
+
+하지만 문제는:
+
+“blob read/write를 허용해야 함”
+
+👉 NotDataActions는 “이미 허용된 데이터 권한을 제한”하는 용도지
+👉 새 권한을 만들 수 없음
+
+✔️ 정리 구조
+목적	사용 가능 여부
+권한 부여	Actions / DataActions ✔
+권한 제한	NotActions / NotDataActions ✔
+권한 생성	❌ NotActions 불가
+✔️ 핵심 한 줄
+
+👉 NotActions / NotDataActions는 권한을 “추가”하는 것이 아니라 “제외”하는 용도이므로, 이 문제의 요구사항을 충족하는 핵심 구성은 Actions + DataActions이다
+
+✔️ 시험 포인트
+
+👉 질문에서:
+
+“allow”
+“grant permissions”
+“need to ensure access”
+
+→ 무조건:
+
+✔ Actions + DataActions
+
+👉 반대로:
+
+“except”
+“but not”
+“exclude”
+
+→ NotActions / NotDataActions
+
+✔️ 인터뷰용 한마디
+
+“NotActions and NotDataActions are exclusion mechanisms used to reduce permissions within a role, not to grant access, so they cannot be used to define required access in this scenario.”
+
+원하면
+👉 
+Azure RBAC v2 완전 구조 (Actions vs DataActions vs Not*)
+👉 
+시험에서 100% 헷갈리는 RBAC 문제 패턴
+
+이거 깔끔하게 정리해줄게.
+
+✔️ 정답
+
+👉 Hierarchy Settings Administrator
+
+✔️ 핵심 개념
+
+이 문제는 “Management Group 구조 설정 변경 권한” 문제야.
+
+✔️ 요구사항
+새로운 Azure subscription이 생성될 때
+root가 아니라 특정 MG-Onboarding으로 들어가야 함
+👉 “default management group 설정 변경”
+✔️ 이 작업에 필요한 권한
+
+Azure에서 이 설정은:
+
+Management group hierarchy settings 변경 권한
+
+🔵 필요한 Azure RBAC permission
+Microsoft.Management/managementgroups/settings/write
+✔️ 그래서 필요한 역할
+
+👉 Hierarchy Settings Administrator
+
+✔️ 이 역할이 하는 일
+default management group 설정 변경
+subscription placement control
+hierarchy 보호 설정 관리
+✔️ 구조
+Tenant Root Group
+        ↓
+Hierarchy Settings (default MG control)
+        ↓
+MG-Onboarding (new subscriptions go here)
+✔️ 왜 다른 역할이 아닌가
+역할	이유
+Owner	너무 과도 (전체 권한)
+Contributor	MG 설정 권한 없음
+User Access Admin	RBAC만 관리
+Hierarchy Settings Admin	✔ 정확한 최소 권한
+✔️ 시험 핵심 포인트
+
+👉 키워드:
+
+“default management group”
+“subscription placement”
+“hierarchy settings”
+
+→ 무조건:
+
+✔ Hierarchy Settings Administrator
+
+✔️ 한 줄 정리
+
+👉 To configure the default management group for new subscriptions, you need the Hierarchy Settings Administrator role, which allows modification of management group hierarchy settings.
+
+✔️ 인터뷰용 한마디
+
+“The Hierarchy Settings Administrator role is required because it provides permissions to modify management group hierarchy settings, including configuring the default management group for new subscriptions.”
+
+원하면
+👉 Management Group roles 완전 정리 (Owner vs MG Contributor vs Hierarchy Admin)
+👉 subscription 이동 / placement 구조
+
+이것도 시험용으로 깔끔하게 정리해줄게.
+
+You have an Azure virtual machine that is protected by Azure Backup using an Enhanced backup policy. The backup policy has the following configuration: Consistency type: Only crash consistent snapshot. You need to identify the characteristics of this backup configuration. Which statement accurately describes this configuration?
+Microsoft Certified: Azure Administrator Associate
+Set
+✔️ 정답
+
+👉 The backup captures a crash-consistent snapshot of the VM without quiescing applications, meaning it represents the state of the VM at the exact moment of capture, similar to a power outage.
+
+✔️ 핵심 개념
+🔵 Crash-consistent snapshot (충돌 일관성)
+
+👉 Azure Backup에서 “Only crash consistent snapshot” 의미:
+
+VM 상태를 즉시 디스크 수준에서 캡처
+OS / 앱 상태 정리(quiescing) 없음
+메모리 상태 포함 안 됨
+
+✔️ 특징
+✔️ 포함되는 것
+디스크 데이터 (as-is)
+❌ 포함되지 않는 것
+메모리 상태
+in-flight transactions
+application flush (DB commit 등)
+✔️ 비유
+
+👉 crash-consistent =
+
+“전원이 갑자기 꺼진 순간의 상태”
+
+✔️ 구조
+VM running
+   ↓
+Snapshot taken instantly
+   ↓
+Disk state captured only
+(no app coordination)
+✔️ App-consistent와 비교
+유형	특징
+Crash-consistent	VM 순간 상태 (power loss 느낌)
+App-consistent	VSS / quiescing / DB flush 포함
+✔️ 시험 핵심 포인트
+
+👉 “Only crash consistent snapshot” 키워드 나오면:
+
+✔ application-aware 아님
+✔ fast snapshot
+✔ no coordination
+
+✔️ 헷갈리는 오답
+
+❌ Application-consistent backup
+→ DB/앱 정합성 보장
+
+❌ File-consistent
+→ Azure 용어 아님 (VM backup에서는 사용 X)
+
+✔️ 한 줄 정리
+
+👉 Crash-consistent backup captures the VM disk state at a point in time without application quiescing, similar to a sudden power loss.
+
+✔️ 인터뷰용 한마디
+
+“A crash-consistent backup in Azure captures the VM’s disk state without application coordination, similar to what would happen during a sudden system crash or power failure.”
+
+원하면
+👉 
+Crash vs App consistent 실제 Azure Backup 내부 동작 (VSS 포함)
+👉 
+Enhanced backup policy 구조
+
+이거 시험용으로 깔끔하게 정리해줄게.
+
+You have an Azure Storage account named storage1. You plan to configure a key expiration policy to ensure that storage account access keys are rotated regularly. You attempt to create the key expiration policy but the Set rotation reminder button is grayed out in the Azure portal. What should you do to enable the key expiration policy configuration?
+✔️ 정답
+
+👉 Enable “Allow storage account key access” (or ensure key-based access is not disabled for the storage account).
+
+✔️ 핵심 개념
+
+이 문제는 “key rotation policy UI가 비활성화되는 이유”를 묻는 거야.
+
+✔️ 왜 버튼이 회색(grayed out)인가?
+
+Azure Storage에서는 보안 강화 설정으로:
+
+❗ Shared Key access가 비활성화되면 key rotation 정책도 설정 불가
+
+✔️ 핵심 조건
+
+Key expiration policy를 사용하려면:
+
+👉 Storage account must allow access key usage
+
+✔️ 설정 이름
+
+Azure Portal / CLI 기준:
+
+Allow storage account key access = Enabled
+
+또는
+
+allowSharedKeyAccess = true
+✔️ 구조
+Storage Account
+   ├── Shared Key Access (MUST be enabled)
+   ├── Key Rotation Policy (depends on above)
+   └── RBAC / Entra ID access
+✔️ 왜 이게 필요하냐
+
+Key expiration policy는:
+
+Storage access keys 기반 기능
+key가 아예 비활성화되면 의미 없음
+✔️ 시험 포인트
+
+👉 keyword:
+
+“grayed out button”
+“key rotation policy”
+
+→ 항상 원인:
+
+✔ Shared Key access disabled
+
+✔️ 헷갈리는 오답
+
+❌ IAM role 부족
+→ UI 자체가 안 열리는 문제 아님
+
+❌ firewall / networking
+→ 관련 없음
+
+❌ storage tier
+→ irrelevant
+
+✔️ 한 줄 정리
+
+👉 Key rotation policy can only be configured when shared key access is enabled on the storage account.
+
+✔️ 인터뷰용 한마디
+
+“The key rotation policy in Azure Storage requires shared key access to be enabled, because it depends on storage account access keys, so disabling key access disables the rotation configuration.”
+
+원하면
+👉 
+Storage security model (Key vs SAS vs Entra ID)
+👉 
+Shared Key Access 왜 deprecated 방향인지
+
+이것도 시험 핵심으로 정리해줄게.

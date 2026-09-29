@@ -1,0 +1,26 @@
+{
+  "id": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Authorization/policyAssignments/deny-unallowed-vm-sizes",
+  "type": "Microsoft.Authorization/policyAssignments",
+  "name": "deny-unallowed-vm-sizes",
+  "properties": {
+    "displayName": "[생산] 허용되지 않은 VM 크기 생성 차단 정책",
+    "description": "운영 환경의 비용 통제를 위해 특정 SKU가 아닌 VM 생성을 차단하지만, 특수 목적으로 지정된 리소스 그룹은 제외합니다.",
+    "metadata": {
+      "assignedBy": "Cloud Admin"
+    },
+    "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "scope": "/subscriptions/00000000-0000-0000-0000-000000000000",
+
+    // 🎯 [핵심] 원래 정책 할당 내부에 제외 대상을 직접 박아 넣은 속성
+    "notScopes": [
+      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-exception-critical-vm"
+    ],
+
+    "parameters": {
+      "listOfAllowedVMSKUs": {
+        "value": ["Standard_D2s_v3", "Standard_D4s_v3"]
+      }
+    },
+    "enforcementMode": "Default"
+  }
+}

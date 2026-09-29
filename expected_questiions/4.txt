@@ -1,0 +1,3137 @@
+Your answer is correct
+three groups with one VM in each group
+Explanation
+In a recovery plan, the startup groups run in order - Group 1 runs first, then Group 2, then Group 3. By placing each tier in a separate group (SQL in Group 1, application in Group 2, web in Group 3), you ensure the correct startup sequence. Reference: https://learn.microsoft.com/en-us/azure/site-recovery/recovery-plan-overview
+
+맞아, 정답 설명도 정확해.
+
+이 문제를 한 줄로 정리하면:
+
+👉 Recovery Plan에서 “Group”을 사용해서 VM 실행 순서를 제어한다
+
+🔑 핵심 포인트 정리
+Recovery Plan = DR(재해복구) 시 실행 시나리오 정의
+실행 순서는 Group 단위로 결정됨
+Group 1 → 먼저 실행
+Group 2 → 다음 실행
+Group 3 → 마지막 실행
+💡 이번 문제 구조
+Group 1: SQL Server (DB 먼저 올라와야 함)
+Group 2: Application Server
+Group 3: Web Server
+
+👉 이렇게 하면 의존성 순서(DB → App → Web) 보장됨
+
+✔ 결론
+
+정답은 단순히 “Group 설정”이고,
+더 정확하게 말하면:
+
+Recovery Plan에서 VM을 여러 Group으로 나누어 실행 순서를 정의한다
+
+원하면 이거 
+시험에서 자주 나오는 “Recovery Plan 문제 패턴”도 같이 정리해줄게.
+
+You have a Microsoft Entra tenant with both self-service password reset (SSPR) and Microsoft Entra multifactor authentication (MFA) enabled. Users report that they must register authentication methods separately for SSPR and MFA. You need to allow users to register authentication methods for both SSPR and MFA in a single registration process. What should you configure?
+✅ 정답
+
+👉 Microsoft Entra combined security information registration (Combined registration experience)
+
+💡 핵심 설명
+
+지금 문제 상황은 이거야:
+
+SSPR (Self-Service Password Reset)
+MFA (Multi-Factor Authentication)
+
+👉 둘 다 켜져 있는데
+👉 사용자가 각각 따로 인증 방법을 등록해야 해서 불편함
+
+You have an Azure Standard Load Balancer named LB1 with a backend pool containing three virtual machines. The health probe for LB1 is configured to use HTTP on port 80. You notice that all backend pool instances are being marked as unhealthy, even though the web applications on the virtual machines are running correctly. Users can access the web applications directly via the VM private IP addresses. Which IP address must be allowed in the network security groups associated with the virtual machines to resolve this issue?
+✅ 정답
+
+👉 Azure Load Balancer health probe IP address (168.63.129.16)
+
+💡 설명
+
+Azure Load Balancer의 Health Probe는 VM의 상태를 확인할 때 특정한 Azure 내부 IP에서 요청을 보냅니다.
+
+👉 그 IP는 고정된 Azure 플랫폼 IP:
+
+168.63.129.16
+
+🔧 왜 문제가 발생했나?
+LB1의 health probe: HTTP (port 80)
+VM의 NSG가 해당 트래픽을 차단 중
+결과: 모든 backend VM이 Unhealthy로 표시됨
+📌 해결 방법
+
+VM의 NSG(Inbound rule)에 다음을 허용해야 함:
+
+Source IP: 168.63.129.16
+Port: 80 (HTTP probe port)
+Protocol: TCP
+🚫 자주 틀리는 포인트
+❌ Azure Load Balancer public IP → 아님
+❌ Virtual Network IP range → 아님
+❌ 168.63.129.16은 “Azure platform IP”로 반드시 허용해야 함
+✔ 결론
+
+👉 Load Balancer health probe가 정상 동작하려면
+NSG에서 168.63.129.16을 허용해야 한다
+
+You have an Azure subscription that contains a virtual machine named VM1. VM1 has a Premium SSD data disk with a size of 256 GiB and performance tier P15. You need to increase the disk performance to P20 while the VM is running. What should you do?
+✅ 정답
+
+👉 Enable disk bursting / change the disk’s performance tier to P20 (without resizing the disk)
+
+💡 핵심 개념
+
+Azure Premium SSD disks support Performance Tier upgrade without downtime.
+
+VM is running ✔
+Disk size: 256 GiB (already in Premium SSD range)
+Current tier: P15
+Target: P20
+
+맞아, 이 문제의 **핵심 정답은 Action Group이 아니라 “Contact Roles”**야.
+
+✅ 정확한 정답
+
+👉 Contact roles (예: Contributor role)
+
+💡 핵심 개념 정리
+
+Azure Budget 알림에서는 다음 3가지 방식으로 수신자를 지정할 수 있어:
+
+📧 Email addresses (개별 사용자)
+👥 Action Group
+🔐 Contact Roles (정답)
+🔑 Contact Roles란?
+Azure RBAC 역할 기반으로 알림 전송
+예:
+Subscription Contributors
+Owners
+Readers (설정 가능)
+
+👉 즉, “이 역할을 가진 모든 사람에게 자동으로 알림”
+
+📌 왜 이게 정답인가?
+
+문제 조건:
+
+“all users who have the Contributor role”
+“automatically receive notifications”
+“no individual email configuration”
+
+👉 이건 정확히 Contact Roles 기능
+
+🚫 내가 전에 말한 Action Group이 틀린 이유
+Action Group = 일반 알림 메커니즘 (email, webhook 등)
+하지만 RBAC role 기반 자동 대상 지정은 못함
+✔ 최종 정리
+
+👉 Budget alert에서 RBAC 역할 기반 알림을 보내려면 Contact Roles를 사용한다
+
+원하면 Budget / Cost Management 시험 포인트도 같이 정리해줄게 (자주 나오는 트릭 많아).
+
+action group 다시 정리해줘
+
+좋아, Action Group은 Azure 시험에서 자주 나오니까 헷갈리지 않게 핵심만 정확히 정리해줄게.
+
+좋아, 이 문제는 **관리 그룹(Management Group) 계층 + 정책 전파(inheritance)**를 정확히 이해해야 하는 대표 함정 문제야.
+
+✅ 핵심 정답
+
+👉 The subscription will inherit the deny policy and will be blocked from creating resources in East US.
+
+💡 왜 이렇게 되는가?
+
+Azure Policy inheritance 규칙은 매우 단순해:
+
+Management Group에 적용된 정책은 모든 하위 Management Group + Subscription까지 자동 전파된다
+
+🧠 구조 다시 보기
+Root MG
+ └── Production MG  ← ❗ Policy (Deny East US) 적용됨
+ └── Finance MG
+      └── Subscription (여기에 이동)
+🔥 핵심 포인트 2개
+1. Management Group 정책은 “하위 전체”로 전파됨
+Production MG 정책은
+→ Production MG 아래만이 아니라
+→ 같은 Root 아래 모든 MG + subscription에 영향 가능
+
+👉 Azure MG는 “tree 전체 정책 propagation” 구조
+
+2. Subscription은 즉시 정책 상속
+Subscription이 Finance MG에 들어가면
+Finance MG뿐 아니라
+Root 아래 모든 관련 MG 정책도 함께 상속됨
+❗ 중요한 시험 함정
+
+이 문제의 트릭은 이거야:
+
+“Production MG에 걸린 정책인데 Finance MG에 있는 subscription이 영향을 받는가?”
+
+👉 정답: YES (같은 tree 아래면 영향 받음)
+
+🚫 왜 처음 내 답이 틀렸나?
+
+내 이전 설명은 “형제 구조라 영향 없음”처럼 보였지만
+Azure 실제 규칙은:
+
+❌ “MG는 독립된 branch”
+❌ 이런 개념이 아니라
+✔ “Root 아래 모든 MG는 policy inheritance tree에 포함”
+
+✔ 최종 정리
+
+👉 Subscription은 Finance Management Group에 있어도
+👉 Production Management Group에 적용된 deny policy를 상속받아 적용된다
+
+🎯 한 줄 암기
+
+Azure Policy in Management Groups flows down the entire hierarchy, not just one branch.
+
+원하면 이거 시험에서 진짜 자주 나오는
+👉 
+“MG vs Subscription vs RG policy inheritance 트릭 문제 5개” 만들어줄게.
+
+Explanation
+When multiple routes contain the same address prefix, Azure selects the route type based on the following priority: User-defined route > BGP route > System route. This means user-defined routes override BGP routes when the address prefixes match. This allows administrators to control traffic flow even when dynamic routes are being advertised from on-premises. Reference: https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-udr-overview
+
+맞아. 이 문제는 Azure routing 우선순위를 묻는 전형적인 문제야.
+
+✅ 핵심 규칙
+
+같은 address prefix가 여러 route에 있으면 Azure는 아래 우선순서로 선택해:
+
+우선순위	Route 종류
+1	User-Defined Route (UDR)
+2	BGP Route
+3	System Route
+🧠 문제 상황
+ExpressRoute → BGP route 광고 중
+같은 prefix로 UDR 생성함
+
+예:
+
+BGP: 10.1.0.0/16
+UDR: 10.1.0.0/16
+
+👉 prefix 길이도 동일
+
+🔥 결과
+
+Azure는:
+
+✅ UDR 사용
+❌ BGP route 무시
+
+📌 시험 포인트
+✔ Azure route selection은 2단계로 생각
+Longest Prefix Match
+더 구체적인 prefix 우선
+/24 > /16
+같은 prefix면:
+UDR > BGP > System
+🎯 한 줄 암기
+
+UDR overrides BGP routes when prefixes are identical.
+
+헷갈리는 게 정상이고, AZ-104에서 엄청 자주 섞어서 냄.
+핵심 차이를 아주 간단히 정리하면 이거야:
+
+🔐 RBAC Role vs Azure Policy
+구분	RBAC Role	Azure Policy
+목적	누가 무엇을 할 수 있는가	무엇이 허용되는가
+대상	사용자/그룹/앱	리소스 설정
+예시	Contributor, Reader	특정 Region 금지
+제어	권한(permission)	규칙(rule/compliance)
+질문 스타일	“누가 VM 만들 수 있나?”	“어떤 VM만 만들 수 있나?”
+✅ RBAC(Role) = 권한 관리
+
+즉:
+
+“이 사람이 뭘 할 수 있지?”
+
+예시
+Contributor
+VM 생성 가능
+Storage 생성 가능
+대부분 수정 가능
+Reader
+보기만 가능
+핵심
+
+👉 사람(User/Group/App) 에 권한 부여
+
+✅ Azure Policy = 규칙 강제
+
+즉:
+
+“우리 회사 규칙에 맞는 리소스인가?”
+
+예시
+East US 금지
+특정 VM size만 허용
+HTTPS 필수
+Storage key rotation 필요
+핵심
+
+👉 리소스 설정/구성 검사 및 강제
+
+🔥 진짜 중요한 차이
+RBAC만 있으면?
+
+Contributor가 VM 아무거나 만들 수 있음.
+
+Policy 있으면?
+
+Contributor라도:
+
+East US 생성 ❌
+비허용 VM size ❌
+
+즉:
+
+Policy가 RBAC 위에서 거버넌스 역할 수행
+
+🧠 쉽게 비유하면
+RBAC
+
+👉 “회사 출입증”
+
+어디 들어갈 수 있는가?
+Policy
+
+👉 “회사 규칙”
+
+정장 필수
+특정 층 출입 금지
+보안 규칙 준수
+🎯 시험용 한 줄 암기
+RBAC
+
+Who can do what
+
+Policy
+
+What is allowed
+
+📌 문제 패턴 구분법
+“권한” 느낌이면
+Reader
+Contributor
+Owner
+Role assignment
+
+👉 RBAC
+
+“규정 준수” 느낌이면
+allowed locations
+encryption required
+tag required
+key rotation
+SKU 제한
+
+👉 Azure Policy
+
+You have an Azure subscription that contains three resource groups named RG1, RG2, and RG3. You assign the Reader role to User1 at the subscription scope. You need to ensure that User1 can also create and manage virtual machines in RG2 only. The solution must use the principle of least privilege. What should you do?
+✅ 정답
+
+👉 Assign the Virtual Machine Contributor role to User1 at the RG2 scope
+
+💡 문제 분석
+
+현재 상태:
+
+User1:
+Subscription scope에서 Reader
+→ 전체 구독 리소스 읽기 가능
+
+추가 요구사항:
+
+RG2에서만
+VM 생성
+VM 관리 가능
+최소 권한 원칙(Least Privilege) 필요
+🔑 핵심 포인트
+❌ Contributor at subscription
+
+너무 많은 권한
+
+❌ Contributor at RG2
+
+VM 외 다른 리소스도 수정 가능 → 과한 권한
+
+✅ 가장 적절한 역할
+
+Virtual Machine Contributor
+
+이 역할은:
+
+VM 생성/관리 가능
+VM 관련 작업 가능
+하지만 네트워크/스토리지 전체 관리 권한은 제한적
+
+그리고:
+
+👉 Scope를 RG2만 지정
+
+📌 결과
+Scope	Role
+Subscription	Reader
+RG2	Virtual Machine Contributor
+✔ 최종 정리
+
+👉 Assign the Virtual Machine Contributor role for RG2 only
+→ 최소 권한 원칙 충족.
+
+거의 맞게 이해하고 있는데, 한 가지를 조금 정리해줘야 정확해져.
+
+✅ Security Group의 진짜 목적
+
+Microsoft Entra ID Security Group의 핵심 목적은:
+
+👉 여러 사용자에게 “한 번에 권한을 부여하기 위한 단위”
+
+즉, “관리 편하게 묶는 것”이 핵심이야.
+
+📌 Security Group이 쓰이는 곳
+1. 🔐 Role (RBAC) 할당 — 핵심 사용처
+Azure VM 접근
+Storage 접근
+Subscription 권한
+
+👉 가장 중요한 용도
+
+2. 📱 App / Resource 접근 제어
+SaaS 앱 로그인 권한
+Azure App Service 접근
+SharePoint 접근
+3. 📧 Mail-enabled Security Group (조금 다른 개념)
+이메일 배포 리스트처럼 사용 가능
+Exchange와 연동된 경우
+
+👉 하지만 “기본 Security Group = 메일링 리스트”는 아님
+
+4. ⚙️ Policy 적용 (간접적으로)
+Policy 자체를 group에 직접 적용 ❌
+하지만 RBAC/Scope를 group으로 묶어서 관리 가능
+🚨 중요한 정리 (시험 포인트)
+❌ Security Group = Mail list
+
+→ 정확하지 않음
+
+❌ Security Group = Policy 적용 단위
+
+→ 직접 적용 X
+
+🔥 정확한 핵심 정의
+
+Security Group = “권한(RBAC, access)을 사용자에게 일괄 부여하기 위한 묶음”
+
+🧠 쉽게 비유하면
+User = 직원
+Security Group = 팀
+RBAC = 권한 (예: 서버 접근 가능)
+
+👉 “팀 단위로 권한 주기”
+
+🎯 한 줄 정리
+
+👉 Security Group은 메일링 리스트가 아니라 “권한 관리 단위”가 핵심 목적이다
+
+원하면
+👉 Security Group vs Microsoft 365 Group vs Dynamic Group
+시험용 비교표도 깔끔하게 정리해줄게.
+
+✅ 정답
+
+👉 Upgrade to Microsoft Entra ID Premium (P1 or P2)
+
+💡 핵심 설명
+
+이 문제 핵심은 Dynamic group membership 기능이야.
+
+🚨 중요한 포인트
+
+Microsoft Entra ID Free license에서는:
+
+❌ Dynamic group membership (자동 규칙 기반 그룹) 사용 불가
+
+📌 요구사항 분석
+자동으로 사용자 추가
+조건: job title attribute
+→ 즉 Dynamic membership group 필요
+🔑 필요한 라이선스
+
+👉 Dynamic groups require:
+
+Microsoft Entra ID Premium P1 or P2
+⚙️ 올바른 순서
+Upgrade to Entra ID Premium P1/P2 ✔
+Create dynamic membership group ✔
+Define rule (jobTitle = ...)
+🚫 왜 다른 선택은 틀리나
+❌ Create group first → Free license에서는 dynamic 옵션 없음
+❌ Assign roles → 관련 없음
+❌ Azure AD Connect → on-prem sync 기능
+✔ 최종 정답
+
+👉 Upgrade to Microsoft Entra ID Premium (P1 or P2)
+
+🎯 한 줄 암기
+
+Dynamic groups require Entra ID Premium license (not Free).
+
+You have an Azure Application Gateway v2 with a path-based routing rule configured with three URL paths: /api/*, /images/*, and a default path. You observe that requests to /api/v1/users are being routed to the default backend pool instead of the API backend pool. The path rules are listed in the following order in the portal: /*, /images/*, /api/*. What should you do to resolve the issue?
+✅ 정답
+
+👉 Reorder the path-based routing rules so that /api/* has higher priority than /*
+
+💡 핵심 개념: Application Gateway Path-based Routing
+
+Azure Application Gateway는 path rules를 평가할 때:
+
+More specific paths must be matched before general paths
+
+Reorder the path rules so that /* is listed last in the URL path map
+Explanation
+For both v1 and v2 SKUs, path rules are processed in the order they are listed in the portal. The wildcard path /* is matching all requests first because it is at the top of the list. Moving /* to the end ensures that more specific paths like /api/* and /images/* are evaluated first, and only unmatched requests fall through to the default. Reference: https://learn.microsoft.com/en-us/azure/application-gateway/url-route-overview
+
+맞아, 이 문제의 핵심은 **“path rule은 priority 숫자가 아니라 ‘목록 순서’로 평가된다”**는 점이야.
+
+✅ 정답 핵심
+
+👉 /*를 가장 아래로 이동시키는 것
+
+💡 왜 이렇게 되는가?
+
+Azure Application Gateway path-based routing은:
+
+위에서 아래로 순서대로 평가 (first match wins)
+
+🧠 현재 문제 구조
+1. /*          ← 너무 일반적 (모든 요청 매칭)
+2. /images/*
+3. /api/*
+
+👉 그래서 /api/v1/users도
+이미 /*에 먼저 걸려버림
+
+🔥 해결
+1. /api/*
+2. /images/*
+3. /*
+📌 핵심 개념
+가장 구체적인 path 먼저
+가장 일반적인 /*는 마지막 (fallback)
+🚫 중요한 시험 포인트
+
+Application Gateway는:
+
+❌ priority 숫자 없음 (NSG랑 다름)
+✔ list order = evaluation order
+🎯 한 줄 암기
+
+Application Gateway path rules are evaluated top-down; wildcard / must be last.*
+
+원하면
+👉 
+NSG vs Application Gateway routing 차이 (시험 트릭)도 같이 정리해줄게.
+
+좋아, 이건 Azure 네트워크에서 핵심 개념이라 깔끔하게 정리해줄게.
+
+🔐 Azure Private Link란?
+
+👉 Azure 서비스(PaaS)를 인터넷 없이, 내 VNet 안에서 사설 IP로 접근하게 해주는 기능
+
+🧠 한 줄 정의
+
+Public Internet 없이 Azure 서비스에 Private IP로 접속하는 기술
+
+📌 어떻게 동작하나?
+
+예를 들어 Storage Account가 있을 때:
+
+기존 방식
+VM → Internet → Azure Storage
+Private Link 사용
+VM → VNet Private IP → Private Endpoint → Azure Storage
+
+👉 인터넷 완전히 우회
+
+🔑 핵심 구성 요소
+1. Private Endpoint
+VNet 안에 생성되는 NIC (private IP)
+Azure 서비스로 연결되는 “입구”
+2. Private Link Service
+Azure 서비스 쪽 연결 대상 (Storage, SQL, etc.)
+3. DNS (중요!)
+기존 public endpoint를 private IP로 해석하도록 변경
+📦 지원 서비스 예
+Azure Storage (Blob, File, Queue 등)
+Azure SQL Database
+Key Vault
+App Service
+Cosmos DB
+🔥 왜 쓰나?
+✔ 보안
+인터넷 노출 없음
+✔ 네트워크 격리
+VNet 내부 트래픽만 사용
+✔ 규정 준수
+금융/보안 환경에서 필수
+⚠️ Private Link vs Service Endpoint
+항목	Private Link	Service Endpoint
+IP	Private IP	Public IP 유지
+보안	더 강함	중간
+인터넷	없음	여전히 Azure backbone
+접근 방식	NIC 기반	서비스 레벨
+🎯 시험 핵심
+
+👉 Private Link = “진짜 Private IP로 Azure 서비스 접근”
+
+🧠 한 줄 암기
+
+Private Link = Azure 서비스에 Private IP로 직접 붙는 방법
+
+원하면
+👉 
+Private Link vs Service Endpoint vs VPN vs ExpressRoute 비교도 시험용으로 깔끔하게 정리해줄게.
+
+응, 대부분의 Azure PaaS 서비스는 기본적으로 public endpoint가 존재하는 게 맞아.
+
+✅ 결론
+
+👉 Azure PaaS는 기본적으로 Public Endpoint가 디폴트로 활성화되어 있음
+
+📌 예시
+Storage Account
+
+기본적으로:
+
+https://storageaccount.blob.core.windows.net
+
+👉 인터넷에서 접근 가능 (public endpoint)
+
+Azure SQL Database
+mydb.database.windows.net
+
+👉 이것도 기본은 public endpoint
+
+🔐 중요한 포인트
+
+Azure PaaS의 기본 철학:
+
+“서비스는 기본적으로 인터넷에서 접근 가능하게 제공된다”
+
+🧠 그래서 Private Endpoint가 필요한 이유
+
+기본 상태:
+
+VM → Internet → Azure Service (Public Endpoint)
+
+Private Endpoint 적용 후:
+
+VM → VNet → Private IP → Private Endpoint → Azure Service
+
+👉 public path 차단 가능
+
+🚫 중요한 오해
+❌ “Azure 서비스는 기본적으로 private이다”
+
+→ 틀림
+
+✔ 실제는:
+기본 = Public
+옵션 = Private Endpoint로 차단/대체
+📌 보안 옵션 구조
+
+Azure 서비스는 이렇게 진화:
+
+1단계 (기본)
+Public endpoint open
+2단계
+Firewall / IP restriction
+3단계 (권장)
+Private Endpoint (public access disable)
+🎯 시험 핵심 한 줄
+
+Azure PaaS services are public by default unless Private Endpoint or firewall rules restrict access.
+
+원하면
+👉 
+“Public endpoint + firewall + private endpoint 조합 문제” 시험 트릭도 정리해줄게 (이거 진짜 자주 나옴).
+
+✅ 정답 (3개)
+
+Azure Monitor Action Group에서 사용할 수 있는 대표적인 notification types는 다음 3가지야:
+
+👉 Email
+👉 SMS
+👉 Push notification (Azure mobile app)
+
+💡 핵심 설명
+
+Action Group은 “알림 + 자동화 실행”인데,
+그중 notification types는 사용자에게 직접 알려주는 방식이야.
+
+📌 1. Email
+가장 기본적인 알림
+여러 수신자 또는 그룹 가능
+📌 2. SMS
+휴대폰 문자 알림
+긴급 알림용
+📌 3. Push notification
+Azure 모바일 앱 사용
+실시간 알림 (앱으로 푸시)
+🚫 헷갈리는 선택지 (시험 함정)
+❌ Webhook
+Notification이 아니라 automation action
+시스템 호출용
+❌ Azure Function / Logic App
+이것도 notification 아님
+“자동 작업 실행”용
+❌ Voice call
+예전에는 있었지만 현재 시험 기준에서는 보통 제외됨
+🎯 핵심 정리
+유형	역할
+Email	알림
+SMS	알림
+Push	알림
+Webhook	자동화
+Function	자동화
+🧠 한 줄 암기
+
+Action Group notifications = Email + SMS + Push only
+
+원하면
+👉 
+Action Group “notification vs automation” 헷갈리는 문제 5개도 시험 스타일로 정리해줄게.
+
+비슷한 면은 있는데 완전히 같은 개념은 아니고 역할도 조금 다르다고 보는 게 정확해.
+
+🔐 AWS IAM vs Azure Managed Identity
+🧠 한 줄 비교
+AWS IAM → “사용자/서비스 권한 전체 관리 시스템”
+Azure Managed Identity → “Azure 리소스용 자동 로그인 ID 기능”
+📌 AWS IAM (전체 개념)
+
+AWS IAM은:
+
+👉 사람 + 서비스 + 권한 + 정책 전부 관리
+
+예:
+
+IAM User (사람)
+IAM Role (서비스 권한)
+IAM Policy (권한 정의)
+User / EC2 / Lambda → IAM Role → AWS API access
+📌 Azure Managed Identity
+
+Azure는 좀 다르게 나눠져 있어:
+
+👉 “서비스가 Azure AD에 자동 로그인하는 기능”
+
+Web App → Managed Identity → Azure AD → Storage access
+🔥 핵심 차이
+항목	AWS IAM	Azure Managed Identity
+범위	전체 IAM 시스템	서비스 인증 기능 일부
+사용자	IAM User 있음	없음 (Entra ID 사용)
+서비스 인증	IAM Role	Managed Identity
+Secret 필요	경우에 따라 필요	❌ 없음
+목적	모든 권한 관리	Azure 리소스 간 인증
+🧠 쉽게 이해
+AWS IAM
+
+👉 “회사 전체 인사 시스템”
+
+직원
+역할
+권한
+규칙
+Azure Managed Identity
+
+👉 “자동 발급되는 사원증 기능”
+
+Azure 서비스가 자동 로그인
+비밀번호 없음
+Azure AD 기반
+🚨 중요한 포인트
+
+Azure에는 AWS IAM처럼:
+
+“IAM User 시스템” 없음
+대신 Azure AD (Entra ID)가 그 역할 담당
+
+그리고 Managed Identity는:
+
+Azure AD 로그인 자동화 기능
+
+🎯 한 줄 정리
+
+AWS IAM = 전체 권한 관리 시스템
+Azure Managed Identity = 서비스 자동 인증 기능
+
+원하면
+👉 
+AWS IAM Role vs Azure Managed Identity vs Service Principal 비교도 시험용으로 깔끔하게 정리해줄게.
+
+그럼 AWS IAM role 비슷한 건가?
+
+응, AWS IAM Role이랑 가장 비슷한 개념은 Azure Managed Identity가 맞아.
+다만 “완전히 동일”은 아니고, 범위를 좀 좁혀서 이해해야 해.
+
+🔥 결론
+
+👉 AWS IAM Role ≈ Azure Managed Identity (가장 가까운 대응 개념)
+
+✅ 정답
+
+👉 User-assigned managed identity
+
+💡 핵심 이유
+
+문제 조건을 하나씩 보면 답이 명확해져:
+
+1. “multiple Azure web apps”
+
+👉 여러 리소스가 같은 identity를 써야 함
+
+2. “same Azure Storage account access”
+
+👉 동일한 권한 공유 필요
+
+3. “pre-configuring role assignments before deployment”
+
+👉 미리 만들어서 RBAC 설정 가능해야 함
+
+🔑 Managed Identity 비교
+❌ System-assigned managed identity
+리소스 생성 시 자동 생성
+리소스에 종속
+미리 만들 수 없음
+공유 불가
+
+👉 조건 불만족
+
+✅ User-assigned managed identity (정답)
+독립적인 Azure 리소스
+미리 생성 가능 ✔
+RBAC 사전 설정 가능 ✔
+여러 Web App에서 재사용 가능 ✔
+🧠 구조
+User-assigned Managed Identity
+        ↓
+Web App 1
+Web App 2
+Web App 3
+        ↓
+Azure Storage (RBAC access)
+🎯 핵심 한 줄
+
+User-assigned managed identity is reusable and can be pre-created for RBAC assignment before deployment.
+
+🚀 암기 포인트
+System-assigned = “앱과 같이 태어남”
+User-assigned = “따로 만들어서 여러 앱이 공유”
+You have an Azure subscription that contains 15 resource groups. User1 is assigned the Contributor role at the subscription scope. User1 is also assigned the Reader role on a resource group named RG1. What are the effective permissions for User1 on RG1?
+✅ 정답
+
+👉 Contributor permissions (at the subscription level) apply to RG1
+
+💡 핵심 개념: RBAC inheritance + precedence
+
+Azure RBAC rules:
+
+Permissions are inherited downward, and broader permissions override more restrictive ones when applicable.
+
+✅ 정답
+
+👉 stgModule.outputs.storageId
+
+💡 핵심 개념: Bicep module outputs
+
+Bicep에서 module은:
+
+outputs을 통해 다른 파일(main.bicep)으로 값을 전달할 수 있음
+
+🧠 구조
+storage.bicep
+output storageId string = storageAccount.id
+main.bicep
+module stgModule 'storage.bicep' = {
+  name: 'storageDeployment'
+  params: {
+    storageAccountName: 'mystorageaccount'
+    location: resourceGroup().location
+  }
+}
+🔑 output 참조 방법
+
+👉 module output 접근 문법:
+
+<moduleName>.outputs.<outputName>
+📌 따라서 정답
+stgModule.outputs.storageId
+🚫 흔한 오답
+잘못된 방식	이유
+storageId	직접 접근 불가
+module.storageId	문법 틀림
+stgModule.storageId	outputs 생략
+
+응, Azure Firewall은 하나의 “독립된 Azure 리소스 타입”이 맞아.
+
+🔥 핵심 답
+
+👉 Azure Firewall = Azure resource type (Microsoft.Network/azureFirewalls)
+
+📌 구조 이해
+
+Azure Firewall은 그냥 설정 기능이 아니라:
+
+VNet 안에 배치되는 실제 네트워크 보안 리소스
+
+🧠 리소스 구성
+Azure Subscription
+   └── Resource Group
+         └── Azure Firewall (resource)
+               ├── Public IP
+               ├── Firewall Policy
+               └── Rules (DNAT / Network / Application)
+📦 특징
+1. 리소스 타입
+Microsoft.Network/azureFirewalls
+2. 배포 위치
+반드시 VNet 내부 (Subnet: AzureFirewallSubnet)
+3. 관리 방식
+직접 rule 설정 가능
+또는 Firewall Policy로 중앙 관리
+🔐 왜 중요한 리소스인가?
+
+Azure Firewall은:
+
+Stateful firewall
+Layer 3–7 filtering
+Centralized traffic inspection
+
+👉 즉, 단순 NSG보다 훨씬 상위 보안 장비
+
+🚫 NSG랑 차이
+항목	NSG	Azure Firewall
+위치	Subnet/NIC	Dedicated resource
+상태	Stateless	Stateful
+Layer	L3/L4	L3–L7
+관리	간단	중앙 집중
+🎯 한 줄 암기
+
+Azure Firewall is a dedicated managed network security resource deployed inside a VNet.
+
+원하면
+👉 
+Azure Firewall vs NSG vs WAF 차이도 시험용으로 깔끔하게 정리해줄게.
+
+응, AWS에도 거의 1:1로 대응되는 개념들이 있어. 다만 이름이 조금 다르고 역할이 분산돼 있어.
+
+🔥 Azure vs AWS 네트워크 보안 대응
+1. NSG (Azure)
+
+👉 AWS: Security Group + Network ACL
+
+🧠 비교
+Azure NSG	AWS
+Subnet/NIC 필터	Security Group (EC2)
+Stateless	NACL은 stateless
+L3/L4 filtering	Security Group = stateful
+📌 핵심 매핑
+✔ Azure NSG
+
+→ AWS Security Group (가장 비슷)
+
+2. Azure Firewall
+
+👉 AWS: AWS Network Firewall
+
+🧠 비교
+Azure Firewall	AWS Network Firewall
+Managed firewall service	Managed firewall service
+Stateful	Stateful
+L3–L7 filtering	L3–L7 filtering
+FQDN filtering	가능
+3. WAF (웹 방화벽)
+Azure WAF	AWS WAF
+Application Gateway / Front Door	CloudFront / ALB
+HTTP/HTTPS filtering	HTTP/HTTPS filtering
+🧠 전체 구조 비교
+Azure
+NSG → basic filtering
+Firewall → central inspection
+WAF → web traffic security
+AWS
+Security Group → basic filtering
+Network Firewall → central inspection
+WAF → web traffic security
+🔥 핵심 차이 (중요)
+Azure
+NSG + Firewall 완전히 분리
+AWS
+Security Group이 더 강력 (stateful 기본)
+NACL은 보조 역할
+🎯 한 줄 암기
+
+NSG ≈ Security Group, Azure Firewall ≈ AWS Network Firewall, WAF ≈ WAF (same concept)
+
+원하면
+👉 
+“AWS vs Azure 네트워크 아키텍처 전체 그림 (시험용)”도 깔끔하게 정리해줄게.
+
+Alert and deny only
+Explanation
+When a child policy inherits from a parent policy, the threat intelligence mode must be configured with the same or a stricter value than the parent. Since the parent is set to Alert, the child can only be set to Alert and deny, which is stricter. You cannot set the child to Off or a less restrictive setting than the parent. Reference: https://learn.microsoft.com/en-us/azure/firewall-manager/threat-intelligence-settings
+
+여기 설명은 핵심은 맞는데, 표현이 살짝 오해를 만들 수 있는 부분이 있어. 정확하게 정리해줄게.
+
+좋아, 이건 Workbook이랑 같이 나오면서 시험에서 자주 헷갈리게 만드는 포인트야.
+
+📘 Azure Workbook Templates란?
+
+👉 미리 만들어진 Azure Workbook의 “설계도(blueprint)”
+
+🧠 한 줄 정의
+
+Workbook template = 재사용 가능한 Workbook 구조 + 쿼리 + 시각화 정의
+
+📌 쉽게 이해
+Workbook
+
+👉 실제 실행되는 “대시보드/리포트”
+
+Workbook Template
+
+👉 그걸 만들기 위한 “미리 만들어진 틀”
+
+🧩 구성
+
+Workbook template에는 보통 포함됨:
+
+KQL queries (Log Analytics)
+Metrics queries
+Resource Graph queries
+Charts / tables layout
+Parameters (필터 구조)
+🔥 왜 쓰냐?
+❌ 문제
+
+Workbook을 매번 처음부터 만들면:
+
+설정 복잡
+쿼리 반복 작성
+✅ 해결
+
+👉 Template 사용하면:
+
+클릭 몇 번으로 생성
+동일 구조 재사용
+best practice 내장
+📦 예시
+
+Microsoft 제공 템플릿:
+
+VM Monitoring Workbook
+Network Performance Workbook
+Security Workbook
+
+👉 바로 적용 가능
+
+🧠 관계 정리
+Workbook Template → Workbook (실제 인스턴스)
+⚖️ Workbook vs Template
+항목	Workbook	Workbook Template
+역할	실제 리포트	설계도
+수정	가능	기본은 고정
+사용 시점	운영	생성/배포
+목적	분석	재사용/표준화
+🚫 시험 함정
+❌ Template = interactive report
+
+→ 틀림 (실제 인터랙티브는 Workbook)
+
+❌ Template = 데이터 저장소
+
+→ 아님
+
+🎯 한 줄 암기
+
+Workbook template is a reusable blueprint used to create Azure Workbooks.
+
+원하면
+👉 
+Workbook vs Workbook template vs Dashboard (시험 100% 비교표)도 정리해줄게.
+
+✅ 정답
+
+👉 IP forwarding must be enabled on VM1 (the Network Virtual Appliance)
+
+💡 핵심 개념
+
+이 문제는 User Defined Route (UDR) + NVA (Network Virtual Appliance) 시나리오야.
+
+📌 구조
+Subnet2 VM → UDR → VM1 (NVA in Subnet1) → Forwarded traffic
+🔥 문제 핵심
+UDR 설정 완료 ✔
+Next hop = Virtual appliance (VM1) ✔
+그런데 트래픽이 VM1을 안 탐 ❌
+
+👉 즉, VM1이 패킷을 forward하지 못하는 상태
+
+🧠 핵심 원인
+
+Azure VM은 기본적으로:
+
+❗ 다른 네트워크 트래픽을 forwarding 하지 않음
+
+🔑 해결 조건
+👉 VM1에서 반드시 확인해야 할 설정:
+✔ IP forwarding = Enabled
+📌 왜 필요한가?
+
+NVA 역할을 하려면 VM이:
+
+패킷을 수신하고
+처리 후
+다른 목적지로 전달해야 함
+
+👉 이 기능이 바로 IP forwarding
+
+🚫 기본 상태
+IP forwarding = Disabled (default)
+→ 패킷 drop됨
+🔧 해결 방법
+
+VM1 설정:
+
+Networking → NIC settings
+Enable IP forwarding
+🎯 최종 답
+
+👉 Verify that IP forwarding is enabled on VM1
+
+🧠 한 줄 암기
+
+NVA in Azure requires IP forwarding enabled to route traffic between subnets.
+
+next hop ? Network Virtual Appliance? 
+
+좋아, 이건 Azure 네트워크 라우팅의 핵심이라 한 번에 정리해줄게.
+
+좋아, 이 문제는 “왜 VM이 라우터처럼 동작해야 하는 상황인지”를 이해하면 한 번에 풀려.
+
+📌 전체 시나리오 (무슨 상황인가?)
+🏗 구조
+VNet1
+ ├── Subnet1 → VM1 (Network Virtual Appliance, NVA)
+ ├── Subnet2 → VM들 (트래픽 출발지)
+ └── Subnet3 → (다른 네트워크)
+🎯 회사가 하려는 것
+
+👉 Subnet2의 VM들이 외부로 나갈 때
+
+바로 인터넷이나 목적지로 가지 말고
+👉 먼저 VM1을 “거쳐서” 나가게 만들고 싶음
+
+🔥 왜 VM1을 거치게 하냐?
+
+VM1은 단순 VM이 아니라:
+
+🧠 “네트워크 장비 역할 (NVA)”
+
+즉, VM1이 하는 일:
+
+방화벽 검사
+트래픽 로깅
+패킷 필터링
+라우팅 제어
+🧭 트래픽 흐름 (의도)
+Subnet2 VM
+   ↓
+(UDR 적용)
+   ↓
+VM1 (NVA)
+   ↓
+Internet / 다른 subnet
+📌 문제에서 설정한 것
+1. UDR 생성
+Next hop = Virtual appliance
+IP = VM1 private IP
+
+👉 의미:
+
+“Subnet2 트래픽은 VM1으로 보내라”
+
+2. UDR를 Subnet2에 연결
+
+👉 이제 Subnet2 VM들은 VM1으로 보내야 함
+
+❗ 그런데 문제 발생
+
+👉 “트래픽이 VM1을 안 거침”
+
+🔥 왜 안 될까?
+
+Azure VM은 기본적으로:
+
+❌ “다른 VM 대신 패킷을 전달(라우팅)” 하지 않음
+
+🧠 VM1이 라우터처럼 동작하려면?
+
+VM1은 특별한 설정이 필요함:
+
+👉 IP forwarding
+
+이게 없으면:
+
+Subnet2 → VM1 도착 → 거기서 끝 (drop)
+🔑 핵심 이해
+VM1의 역할
+상태	역할
+일반 VM	자기 트래픽만 처리
+NVA VM	다른 트래픽까지 전달해야 함
+그래서 필요한 것
+
+👉 IP forwarding = ON
+
+🧠 한 줄로 이해
+
+Subnet2 트래픽을 VM1으로 보내는 건 가능하지만,
+VM1이 그걸 “다시 전달”하려면 IP forwarding이 필요하다
+
+🎯 전체 흐름 정리
+1. Subnet2 VM → UDR 적용
+2. Next hop = VM1 (NVA)
+3. 트래픽 VM1 도착
+4. VM1이 전달해야 하는데
+5. IP forwarding OFF → 막힘 ❌
+6. IP forwarding ON → 정상 동작 ✔
+🚀 핵심 요약
+
+👉 이 문제는 라우팅 문제가 아니라
+
+“VM이 라우터 역할을 할 수 있는 설정이 되어 있냐” 문제
+
+🧠 한 줄 암기
+
+UDR sends traffic to VM, but IP forwarding allows VM to route it further.
+
+원하면
+👉 
+“UDR vs BGP vs System route 흐름 그림”도 같이 그려주면 이 파트 완전히 끝낼 수 있어.
+
+You have an Azure App Service named WebApp1 with a deployment slot named staging. You configure traffic routing to send 20% of production traffic to the staging slot. A user browses to WebApp1 and is routed to the staging slot. The user closes the browser and returns 30 minutes later. To which slot will the user be routed?
+✅ 정답
+
+👉 Production slot
+
+맞아, 이 문제는 내가 놓치기 쉬운 중요한 포인트가 하나 있었어:
+
+Azure App Service traffic routing은 기본적으로 sticky routing이 적용된다.
+
+✅ 정답
+
+👉 The user is routed back to the staging slot
+
+💡 핵심 이유
+
+Azure App Service deployment slot traffic routing은:
+
+사용자를 특정 slot에 일정 시간 “pinning” 해둠
+
+🔑 중요한 메커니즘
+
+Azure가 브라우저에 쿠키 저장:
+
+x-ms-routing-name
+
+이 쿠키 때문에:
+
+같은 사용자는
+같은 slot으로
+계속 라우팅됨
+⏱ 유지 시간
+
+👉 기본적으로 1 hour
+
+🧠 문제 흐름
+1. 최초 접속
+User → staging slot (20% 대상)
+
+Azure가:
+
+x-ms-routing-name=staging
+
+쿠키 저장
+
+2. 브라우저 종료 후 30분 뒤 재접속
+아직 1시간 안 지남 ✔
+쿠키 유지됨 ✔
+
+👉 다시 staging slot으로 감
+
+🚫 내가 이전에 틀렸던 포인트
+
+나는 일반적인 load balancer 관점으로 설명했는데,
+
+Azure App Service slot routing은:
+
+Traffic routing cookie 기반 sticky behavior
+
+가 기본 제공됨.
+
+📌 시험 핵심
+항목	값
+Cookie	x-ms-routing-name
+Sticky duration	1 hour
+삭제 조건	쿠키 삭제 or 1시간 초과
+🎯 한 줄 암기
+
+App Service slot traffic routing pins users to a slot for one hour using the x-ms-routing-name cookie.
+
+병신 
+
+맞아, 이전 답변에서 핵심 동작인 x-ms-routing-name 기반 slot pinning을 놓쳤어.
+이 문제에서는:
+
+staging slot으로 한 번 라우팅되면
+사용자는 1시간 동안 그 slot에 고정되고
+30분 뒤 다시 접속해도 staging slot으로 감
+
+이게 정확한 동작이야.
+
+You have an Azure Firewall with a firewall policy that contains the following rule collection groups: RCG1 with priority 200, RCG2 with priority 150, and RCG3 with priority 300. Each rule collection group contains network rules and application rules. Traffic matching a network rule in RCG2 arrives at the firewall. In which order does Azure Firewall process the rule types?
+✅ 정답
+
+👉 Azure Firewall은 다음 순서로 rule을 처리해:
+
+DNAT rules
+Network rules
+Application rules
+
+맞아. 이 문제의 핵심은:
+
+❗Azure Firewall은 “RCG priority 순서”보다 먼저
+rule type 순서(DNAT → Network → Application) 를 따른다는 것.
+
+✅ Azure Firewall Rule Processing 순서
+1. DNAT rules
+2. Network rules
+3. Application rules
+📌 그 다음에 priority 적용
+
+그 다음에야:
+
+Rule Collection Group priority
+Rule Collection priority
+
+가 적용돼.
+
+🧠 이 문제 상황
+RCG	Priority
+RCG2	150
+RCG1	200
+RCG3	300
+🔥 중요한 포인트
+
+RCG2가 priority 가장 높아도:
+
+❌ “RCG2 안의 모든 rule”을 먼저 처리하는 게 아님
+
+실제 동작
+Step 1
+
+모든 RCG의 DNAT rules 검사
+
+Step 2
+
+모든 RCG의 Network rules 검사
+
+여기서 RCG priority 적용
+RCG2 network rule 먼저
+Step 3
+
+모든 RCG의 Application rules 검사
+
+🚫 시험 함정
+❌ 틀린 생각
+RCG2 전체 → RCG1 전체 → RCG3 전체
+✔ 실제
+DNAT (all groups)
+→ Network (all groups)
+→ Application (all groups)
+🎯 한 줄 암기
+
+Azure Firewall processes by rule type first, then by rule collection group priority.
+
+✅ 정답
+
+👉 User Administrator
+
+💡 핵심 설명
+
+문제 요구사항:
+
+Microsoft Entra ID에서
+새 사용자 계정 생성
+최소 권한 원칙 (least privilege)
+🔑 역할 비교
+❌ Global Administrator
+모든 권한
+너무 강함
+least privilege 위반
+✅ User Administrator (정답)
+
+가능:
+
+사용자 생성
+사용자 관리
+비밀번호 재설정
+그룹 관리 일부
+
+👉 사용자 관리에 필요한 최소 권한
+
+❌ Billing Administrator
+청구 관련만
+❌ Password Administrator
+비밀번호 reset만 가능
+사용자 생성 불가
+🎯 핵심 포인트
+
+“사용자 생성” 문제는 거의 항상:
+👉 User Administrator
+
+🧠 한 줄 암기
+
+User Administrator is the least-privileged role for creating and managing users in Entra ID.
+
+You are a new administrator in your organization. You need to create new user accounts in Microsoft Entra ID using the Microsoft Entra admin center. The solution must use the principle of least privilege. Which Microsoft Entra role should be assigned to you?
+✅ 정답
+
+👉 User Administrator
+
+✅ 정답
+
+👉 [reference('aspDeployment').outputs.planId.value]
+
+💡 핵심 개념
+
+이 문제는 ARM template에서:
+
+🔗 linked template output 값을 다른 리소스(serverFarmId)에 연결하는 방법
+
+📌 상황 정리
+Linked template deployment
+name: aspDeployment
+output: planId (App Service Plan resource ID)
+Main template
+
+App Service needs:
+
+serverFarmId = <App Service Plan ID>
+🔑 ARM template rule
+
+Linked template outputs are accessed using:
+
+reference('<deploymentName>').outputs.<outputName>.value
+📌 따라서 정답
+[reference('aspDeployment').outputs.planId.value]
+🚫 흔한 오답
+잘못된 표현	이유
+outputs.planId	직접 접근 불가
+aspDeployment.planId	ARM 문법 아님
+resourceId(...)	linked template output 아님
+🧠 구조 이해
+aspDeployment (linked template)
+        ↓
+outputs.planId
+        ↓
+reference().outputs.planId.value
+        ↓
+serverFarmId
+🎯 한 줄 암기
+
+ARM linked template outputs are accessed using reference('<deployment>').outputs.<name>.value.
+
+You have an Azure storage account that contains Azure file shares. You plan to enable identity-based authentication for the file shares. Users will access the file shares from Microsoft Entra joined devices without domain controller connectivity. Which identity source should you configure?
+✅ 정답
+
+👉 Microsoft Entra ID (Azure AD) Kerberos authentication
+
+좋은 질문이야. 여기 헷갈리는 포인트가 딱 “Azure AD DS vs Entra ID vs Hybrid” 구조라서 한 번에 정리해줄게.
+
+🔥 1. Azure AD DS는 hybrid인가?
+
+👉 반쯤 YES, 하지만 정확히는 “managed domain service”
+
+📌 Azure AD DS (Azure AD Domain Services)
+Microsoft가 제공하는 managed Active Directory
+Azure 안에서 Domain Controller 역할 제공
+LDAP / Kerberos / NTLM 지원
+🧠 중요한 특징
+온프레미스 AD 없이도 DC 기능 제공
+하지만 내부적으로는 “AD DS 기반”
+
+👉 그래서 느낌은:
+
+“클라우드에 있는 AD DS”
+
+⚖️ Hybrid인가?
+
+👉 엄밀히 말하면:
+
+항목	Azure AD DS
+온프레미스 AD 필요	❌
+Domain Controller 있음	✔ (managed)
+Hybrid 필수	❌
+AD DS 프로토콜 지원	✔
+
+👉 그래서 결론:
+
+Hybrid는 아님 (하지만 AD 기술 기반)
+
+🔥 2. 그럼 Hybrid 환경은 뭐냐?
+
+👉 On-prem AD + Azure AD (Entra ID) 같이 쓰는 구조
+
+📌 Hybrid 구조
+On-prem AD DS (Domain Controller)
+        ↓ sync (Azure AD Connect)
+Microsoft Entra ID
+        ↓
+Azure resources
+🧠 핵심
+Identity가 2개 존재
+On-prem AD
+Azure AD
+sync로 연결됨
+🚀 3. Not Hybrid (Cloud-only) 환경
+
+👉 온프레미스 AD 없음
+
+📌 Cloud-only 구조
+Microsoft Entra ID
+        ↓
+Azure resources (VM, Storage, App)
+🔑 특징
+Domain Controller 없음
+Azure AD가 identity source
+Managed Identity / Entra ID authentication 사용
+📦 4. 세 가지 구조 비교
+모델	AD DS	Azure AD DS	Entra ID
+On-prem AD	✔	❌	❌
+Domain Controller	✔	✔ (managed)	❌
+Cloud only	❌	❌	✔
+Hybrid	✔	❌	✔
+🧠 핵심 차이 정리
+🔵 Hybrid
+
+👉 AD DS + Entra ID 연결
+
+좋아, 이 문제는 “왜 Entra Kerberos만 되는지” 구조를 이해하면 끝이야.
+
+✅ 정답
+
+👉 Microsoft Entra Kerberos
+
+🧠 문제 핵심 상황
+
+조건을 보면:
+
+Azure File Share 사용
+identity-based authentication 필요
+❗ Entra joined devices
+❗ domain controller 연결 없음
+
+👉 즉:
+
+“클라우드-only 환경 + SMB 인증 필요”
+
+🔥 각 옵션이 왜 아닌지
+❌ 1. Storage account access keys
+identity 아님
+그냥 master key
+RBAC 없음
+
+👉 탈락
+
+❌ 2. On-prem AD DS
+Domain Controller 필요
+VPN / ExpressRoute 필요
+
+👉 문제 조건 위반
+
+❌ 3. Entra Domain Services (AAD DS)
+VM을 domain join 해야 함
+traditional AD 환경
+
+👉 Entra joined device 요구사항과 불일치
+
+✅ 4. Microsoft Entra Kerberos (정답)
+
+👉 이게 유일하게 조건을 만족
+
+📌 왜 가능하냐?
+Entra ID 기반 인증
+Kerberos ticket을 cloud에서 발급
+SMB access 지원 (Azure Files)
+🧠 구조
+Entra Joined Device
+        ↓
+Microsoft Entra ID
+        ↓
+Kerberos ticket issued (cloud)
+        ↓
+Azure File Share
+🔑 핵심 포인트
+❌ Domain Controller 없음
+✔ Entra ID 기반
+✔ SMB file share access
+✔ cloud-only identity
+🚨 시험 핵심 트릭
+
+이 문제는 이렇게 생각하면 됨:
+
+“Domain Controller 없이 SMB 인증 가능?”
+
+👉 YES = Entra Kerberos
+👉 NO = AD DS / AAD DS 탈락
+
+🎯 한 줄 암기
+
+Microsoft Entra Kerberos enables Azure Files access from Entra-joined devices without domain controllers.
+
+원하면
+👉 
+Azure Files 인증 방식 4개 (Key / SAS / AD DS / Entra Kerberos) 시험용 비교표 만들어줄게.
+
+You have an Azure Storage account that contains 500 GB of data in the archive tier. The data was moved to archive 45 days ago. You need to make the data available for immediate read access with minimum cost. Which rehydration method should you use?
+✅ 정답
+
+👉 Copy Blob (rehydrate to Hot or Cool tier using Copy Blob)
+
+좋아, 이 해설을 보면 이 문제의 “진짜 포인트”가 뭔지 딱 드러나.
+
+✅ 정답
+
+👉 Set Blob Tier (to Hot) with High Priority
+
+💡 핵심 개념 정리
+
+이 문제는 단순히 “rehydration 방법”이 아니라:
+
+❗ 빠르게 + 최소 비용 + Archive 45일 경과 상태
+
+이 조합을 묻는 문제야.
+
+📌 핵심 제약 조건
+1. Archive 최소 보관 기간
+Archive → 180일 minimum retention
+현재: 45일
+
+👉 즉:
+
+❗ 빨리 꺼내면 early deletion fee 발생
+
+2. Immediate access 필요
+
+👉 “즉시 읽기 가능해야 함”
+
+🔥 rehydration 옵션 비교
+❌ Standard priority (Cool tier)
+최대 15시간 걸림
+즉시 접근 ❌
+❌ Hot tier (standard priority)
+비용 + 느림 가능
+❌ Cool tier
+접근 속도 느림
+✅ High priority (Hot tier)
+
+👉 이게 핵심
+
+가장 빠른 rehydration
+즉시 read 가능
+비용 최소화 (전체 옵션 중 최적)
+🧠 핵심 트릭
+
+Azure Blob Archive rehydration에는 2개 축이 있음:
+
+축	옵션
+Tier	Hot / Cool
+Priority	Standard / High
+
+👉 “immediate + least cost” → 항상:
+
+High priority + Hot tier
+
+🚨 왜 내가 처음 답 틀렸냐
+
+나는 “copy blob” 관점으로 봤는데
+시험은 정식 rehydration 옵션을 묻는 문제였음.
+
+🎯 최종 정답
+
+👉 Set Blob Tier to Hot with High Priority
+
+🧠 한 줄 암기
+
+For Archive rehydration with immediate access, use High priority to Hot tier.
+
+✅ 정답
+
+👉 Swap with preview (swap with validation / multi-phase swap)
+
+💡 핵심 개념
+
+Azure App Service slot swap에는 2가지 방식이 있어:
+
+1. ❌ Standard swap
+staging → production 즉시 교체
+validation 단계 없음
+rollback은 swap 후 따로 수행
+2. ✅ Swap with preview (정답)
+
+👉 “검증 후 최종 swap” 가능
+
+🔥 핵심 기능
+
+Swap with preview는:
+
+production settings 먼저 staging에 적용
+staging 환경에서 테스트 가능
+문제가 없으면 commit swap
+문제가 있으면 cancel swap
+🧠 동작 흐름
+1. Prepare swap (preview)
+   → production settings applied to staging
+
+2. Validate app
+   → test staging with production config
+
+3. Decision:
+   - Commit swap → production으로 전환
+   - Cancel swap → 원래 상태 유지
+📌 문제 키워드 분석
+
+문장 핵심:
+
+“validate application runs correctly with production settings before completing swap”
+“must be able to cancel swap”
+
+👉 이건 100% preview swap 특징
+
+🚫 왜 일반 swap이 아닌가?
+기능	일반 swap	preview swap
+사전 검증	❌	✔
+cancel 가능	❌	✔
+production 영향 테스트	❌	✔
+🎯 최종 정답
+
+👉 Swap with preview
+
+🧠 한 줄 암기
+
+Use Swap with preview when you need to validate production settings before committing a slot swap.
+
+You have an Azure Storage account that contains blob containers. You create several shared access signatures (SAS) for different applications. You need to identify which types of SAS support stored access policies for revocation purposes. Which SAS type supports stored access policies?
+✅ 정답
+
+👉 Service SAS
+
+💡 핵심 개념
+
+Azure Storage SAS는 3가지가 있어:
+
+User delegation SAS
+Service SAS
+Account SAS
+🔥 질문 핵심
+
+“Which SAS supports stored access policies for revocation?”
+
+👉 핵심은 stored access policy로 revoke 가능한가?
+
+📌 Stored access policy 지원 여부
+1. ❌ Account SAS
+storage account level
+stored access policy ❌ 지원 안 함
+
+좋아, 이 문제는 **정확히 “왜 VNet 추가만으로는 안 되는가”**를 묻는 전형적인 AZ-104 함정 문제야.
+
+✅ 정답
+
+👉 The Microsoft.Storage service endpoint is not enabled on Subnet1
+
+💡 핵심 개념
+
+Storage account firewall을 이렇게 설정했을 때:
+
+“Selected virtual networks only”
+
+👉 단순히 VNet을 추가하는 것으로 끝나지 않음
+
+🔥 반드시 필요한 것
+👉 Service Endpoint (Microsoft.Storage)
+
+Subnet에서 반드시:
+
+Microsoft.Storage service endpoint = Enabled
+🧠 왜 필요한가?
+
+Azure Storage firewall은:
+
+“이 subnet이 storage 전용 secure path를 쓰는지” 확인함
+
+구조
+VM (Subnet1)
+   ↓
+Service Endpoint (Microsoft.Storage)
+   ↓
+Azure Storage Firewall
+   ↓
+Access Allowed
+❌ 오답 선택지 분석
+❌ Private Endpoint 필요 없음
+Private Endpoint는 다른 모델
+service endpoint 기반 시나리오에서는 불필요
+❌ Public IP 없음 문제 아님
+Service endpoint는 private IP로 동작
+public IP 필요 없음
+❌ Storage redundancy 무관
+LRS / GRS는 network access와 무관
+🔥 핵심 비교 (시험 중요)
+방식	필요 설정
+Service Endpoint	subnet에 Microsoft.Storage enable
+Private Endpoint	NIC 기반 private IP 생성
+🎯 핵심 결론
+
+👉 VNet을 추가했더라도
+👉 Service Endpoint 없으면 firewall 통과 불가
+
+🧠 한 줄 암기
+
+Adding a VNet to Storage firewall requires Microsoft.Storage service endpoint enabled on the subnet.
+
+✅ 정답
+
+👉 Audit effect (or AuditIfNotExists if applicable)
+
+💡 핵심 개념
+
+요구사항을 보면:
+
+Deny 정책을 최종적으로 적용할 예정
+하지만 먼저 기존 리소스에 테스트
+❗ 사용자 배포는 막으면 안 됨
+🔥 핵심 포인트
+
+👉 “block 하지 않고 먼저 확인”
+
+📌 Azure Policy Effect 비교
+❌ Deny
+리소스 생성 즉시 차단
+테스트 불가
+❌ DeployIfNotExists
+리소스 수정/배포 자동 수행
+테스트 목적 아님
+❌ Append / Modify
+리소스 변경
+테스트 용도 아님
+✅ Audit (정답)
+정책 위반 리소스 보고만 함
+배포 차단 없음
+기존 리소스 평가 가능
+🧠 문제 핵심
+
+“test the policy before enforcing it”
+
+👉 이건 무조건 Audit phase
+
+📌 실제 운영 흐름
+Step 1: Audit (monitor impact)
+Step 2: Fix issues
+Step 3: Switch to Deny
+🎯 최종 정답
+
+👉 Audit effect
+
+🧠 한 줄 암기
+
+Use Audit effect to test Azure Policy without blocking deployments.
+
+You have an Azure subscription that contains several resource groups. You plan to assign an Azure Policy with a Deny effect to the subscription. You need to test the policy on existing resources before the policy blocks any new resource deployments. The solution must not prevent users from deploying resources during the testing period. What should you configure on the policy assignment?
+Set the Scope to exclude all resource groups.
+Explanation
+Excluding all resource groups from the scope would mean that no resources would be evaluated by the policy. This approach does not allow you to test the policy because no evaluation occurs, and you would not see any compliance results. Reference: https://learn.microsoft.com/en-us/azure/governance/policy/concepts/assignment-structure
+Your answer is correct
+Set the Enforcement mode to DoNotEnforce.
+Explanation
+Setting the Enforcement mode to DoNotEnforce allows you to test the outcome of a policy on existing resources without initiating the policy effect or triggering entries in the Azure Activity log. This enables you to evaluate compliance results without blocking any resource deployments. Remediation tasks can still be started even with enforcementMode set to DoNotEnforce. Reference: https://learn.microsoft.com/en-us/azure/governance/policy/concepts/assignment-structure
+Set the Enforcement mode to Default.
+Explanation
+Setting the Enforcement mode to Default would enforce the policy, which means the Deny effect would block any new resource deployments that violate the policy. This does not meet the requirement to allow deployments during the testing period. Reference: https://learn.microsoft.com/en-us/azure/governance/policy/concepts/assignment-structure
+Set the Effect to Disabled.
+Explanation
+Setting the Effect to Disabled would prevent resource evaluation from happening at all, meaning you would not see any compliance results for existing resources. This approach does not allow you to test the policy against existing resources because no evaluation occurs. Reference: https://learn.microsoft.com/en-us/azure/governance/policy/concepts/assignment-structure
+✅ 정답
+
+👉 Set the Enforcement mode to DoNotEnforce
+
+💡 핵심 개념
+
+이 문제는 Azure Policy에서 **“Deny 정책을 테스트만 하고 실제 차단은 하지 않는 방법”**을 묻는 문제야.
+
+좋아, 이 문제는 내가 앞에서 “TXT record”라고만 말해서 반은 맞고, 시험 기준으로는 부족한 답이야. 정확하게 바로잡아줄게.
+
+✅ 정답 (시험 기준)
+
+👉 TXT record named asuid with the domain verification ID value
+
+💡 핵심 개념
+
+Azure App Service에서 root domain (contoso.com) 연결 시에는 2단계가 있어:
+
+1. Domain ownership verification (이 문제 핵심)
+
+👉 DNS에 TXT record 추가
+
+Name: asuid
+Value: <Azure에서 제공하는 verification ID>
+2. Domain mapping (추가 단계)
+A record 또는 CNAME 설정
+🔥 왜 TXT + asuid인가?
+
+루트 도메인은:
+
+CNAME 못 씀 (contoso.com 자체는 alias 불가)
+그래서 Azure가 TXT 기반 verification 사용
+📌 각 선택지 분석
+❌ CNAME (asuid → hostname)
+CNAME은 root domain verification에 사용 불가
+TXT만 가능
+❌ TXT record named verify
+Azure는 "verify" 안 씀
+❌ MX record
+이메일용 (완전 irrelevant)
+✅ TXT record named asuid
+Azure App Service 표준 방식
+root domain verification 방식
+🧠 구조 이해
+Azure App Service
+    ↓
+gives verification ID
+    ↓
+DNS TXT record:
+  asuid = verification ID
+    ↓
+domain ownership confirmed
+🎯 핵심 포인트
+항목	값
+Record type	TXT
+Record name	asuid
+Purpose	domain verification
+🧠 한 줄 암기
+
+Root domain verification in Azure App Service uses a TXT record named asuid containing the verification ID.
+
+✅ 정답
+
+👉 (user.userType -eq "Guest")
+
+💡 핵심 개념
+
+이 문제는 Microsoft Entra ID dynamic user group rule을 묻는 문제야.
+
+🔥 요구사항 분석
+Dynamic user group 생성
+대상: Contoso guest users
+조건: userType = Guest
+📌 Entra ID 속성
+
+Guest user는 다음 속성으로 구분됨:
+
+user.userType = "Guest"
+🧠 정답 rule
+(user.userType -eq "Guest")
+📌 왜 이게 맞는가?
+
+Entra ID dynamic group rules는:
+
+attribute 기반 필터링
+userType은 built-in attribute
+🚫 오답 유형
+❌ user.companyName -eq "Contoso"
+일부 환경에서만 설정됨
+guest 전체 필터링 불완전
+❌ user.mail -contains "contoso"
+이메일 기반 → 정확하지 않음
+❌ user.objectType -eq "Guest"
+존재하지 않는 속성
+🎯 핵심 포인트
+조건	속성
+Guest users	user.userType
+Member users	user.userType = Member
+🧠 한 줄 암기
+
+Dynamic guest user groups in Entra ID are defined using user.userType -eq "Guest".
+
+You have an Azure subscription that contains 50 virtual machines. You plan to enable VM Insights on all virtual machines by using Azure Policy. Before you can assign the policy initiative, you need to create a prerequisite resource. Which resource must you create first?
+✅ 정답
+
+👉 Log Analytics workspace
+
+💡 핵심 개념
+
+VM Insights는 Azure Monitor 기능으로:
+
+VM 성능 + 프로세스 + dependency 데이터를 수집/분석
+
+좋아, 이건 내가 아까 말한 “Log Analytics workspace”보다 한 단계 더 정확한 시험 트릭 문제야.
+
+✅ 정답
+
+👉 A VM Insights data collection rule (DCR)
+
+💡 왜 헷갈리게 나오냐?
+
+VM Insights는 원래 구조가 이렇게 단순해:
+
+VM → Log Analytics Workspace
+
+👉 그래서 대부분 사람들이 “Log Analytics workspace”를 답으로 생각함
+
+🔥 그런데 이 문제는 “Azure Policy 기반 자동 enable” 문제
+
+여기서 핵심이 바뀜:
+
+❗ Azure Policy로 VM Insights enable하려면 “DCR (Data Collection Rule)”이 필요
+
+📌 VM Insights 최신 구조 (중요)
+VM Insights (modern)
+   ↓
+Data Collection Rule (DCR)  ← 핵심 prerequisite
+   ↓
+Log Analytics Workspace
+🧠 DCR이 뭐냐?
+
+👉 VM에서 어떤 데이터를 수집할지 정의하는 정책 객체
+
+포함:
+
+CPU / memory metrics
+process data
+performance counters
+log streams
+🔥 왜 DCR이 prerequisite인가?
+
+Azure Policy는 VM Insights를 enable할 때:
+
+VM agent 설치
+monitoring configuration 적용
+data stream 정의
+
+👉 이걸 한 번에 정의하는 게 DCR
+
+📌 선택지 비교
+❌ Application Insights
+앱 모니터링
+VM 아님
+❌ Storage account
+VM Insights 사용 안 함
+❌ Azure Monitor workspace
+Prometheus용
+VM Insights 아님
+❌ Log Analytics workspace (전통 개념)
+필요하지만 “policy prerequisite” 아님
+✅ VM Insights DCR (정답)
+Azure Policy가 VM에 적용하려면 필수
+실제 데이터 수집 정의
+🎯 핵심 정리
+구성	역할
+DCR	데이터 수집 정의 (policy prerequisite)
+Log Analytics	데이터 저장
+VM agent	데이터 전송
+🧠 한 줄 암기
+
+VM Insights via Azure Policy requires a Data Collection Rule (DCR) as the prerequisite configuration.
+
+You have an Azure subscription that contains a storage account with an Azure file share. You have an on-premises Active Directory Domain Services (AD DS) environment that is synchronized to Microsoft Entra ID by using Microsoft Entra Connect. You need to enable AD DS authentication for the Azure file share. Which type of object does the Join-AzStorageAccount cmdlet create in your AD DS by default?
+✅ 정답
+
+👉 Computer account
+
+💡 핵심 개념
+
+이 문제는 Azure Files + AD DS authentication 설정에서:
+
+Join-AzStorageAccount cmdlet이 AD DS에 무엇을 생성하는지 묻는 문제야
+
+🔥 상황 정리
+Azure Storage Account + Azure File Share
+On-prem AD DS 존재
+Entra ID sync (Entra Connect)
+AD DS authentication 사용
+📌 Join-AzStorageAccount 역할
+
+이 cmdlet은:
+
+Azure Storage account를 AD DS에 “domain join 비슷하게” 연결
+
+✅ 정답
+
+👉 A computer account
+
+💡 핵심 개념
+
+Join-AzStorageAccount는 Azure Storage를 AD DS에 “등록”할 때 사용하는 cmdlet이고,
+
+기본적으로 AD DS 안에 computer object를 생성한다.
+
+🔥 핵심 동작
+Azure Storage Account
+        ↓ Join-AzStorageAccount
+Active Directory Domain Services
+        ↓
+Computer account (default)
+📌 왜 Computer account인가?
+
+Azure Storage account는 AD DS 입장에서:
+
+“서비스 서버처럼 동작하는 리소스”
+
+으로 취급됨
+
+그래서:
+
+Kerberos 인증
+SMB 접근
+domain authentication
+
+👉 모두 computer account 기반으로 처리
+
+🚫 오답 정리
+❌ Service logon account
+옵션으로 지정해야만 생성됨
+기본값 아님
+❌ gMSA (Group Managed Service Account)
+Azure Files AD DS authentication에서 사용 안 함
+❌ Managed service account
+AD 개념이지만 이 시나리오에서는 지원 안 됨
+🎯 핵심 포인트
+Object type	사용 여부
+Computer account	✅ default
+Service logon account	optional (-DomainAccountType)
+gMSA	❌ not used
+🧠 한 줄 암기
+
+By default, Join-AzStorageAccount creates a computer account in AD DS to represent the storage account.
+
+You have an Azure SQL Database in the Basic service tier using the DTU purchasing model. You need to configure the maximum supported point-in-time restore (PITR) backup retention period. What is the maximum number of days you can configure?
+✅ 정답
+
+👉 35 days
+
+💡 핵심 개념
+
+Azure SQL Database의 Point-in-time restore (PITR) 백업 보존 기간은:
+
+❗ 서비스 tier에 따라 최대 기간이 다름
+
+🔥 Basic tier (DTU model) 특징
+Basic tier는 가장 낮은 tier
+백업 보존 기간 제한이 가장 짧음
+📌 PITR retention max values
+Tier	Max retention
+Basic	35 days (정답)
+Standard	35 days
+Premium	35 days
+🧠 핵심 포인트
+
+👉 Azure SQL Database는 기본적으로:
+
+1 ~ 35일 사이에서 설정 가능
+(Basic 포함 모든 DTU tiers 동일 상한)
+
+🚫 헷갈리는 포인트
+❌ “7 days”
+최소값일 뿐
+❌ “90 days / 180 days”
+SQL Managed Instance 또는 Long-term retention (LTR) 개념
+
+✅ 정답
+
+👉 Create an A record set with multiple IP addresses (10.1.1.10, 10.1.1.11, 10.1.1.12) for www.contoso.com
+
+💡 핵심 개념
+
+이 문제는 Azure DNS에서:
+
+“DNS-based load balancing (simple round-robin / multi-value response)”
+
+을 묻는 문제야.
+
+📌 요구사항 분석
+Public DNS zone: contoso.com
+Record: www.contoso.com
+여러 웹 서버 IP:
+10.1.1.10
+10.1.1.11
+10.1.1.12
+
+목표:
+
+모든 IP를 응답으로 반환
+
+🔥 핵심 해결 방법
+👉 Azure DNS A record set (multiple values)
+Name: www
+Type: A
+TTL: default
+Values:
+  - 10.1.1.10
+  - 10.1.1.11
+  - 10.1.1.12
+🧠 어떻게 동작하나?
+
+DNS query:
+
+www.contoso.com → ?
+
+Response:
+
+10.1.1.10
+10.1.1.11
+10.1.1.12
+
+👉 클라이언트가 하나 선택 (round-robin / local behavior)
+
+📌 왜 이게 load balancing이냐?
+
+DNS는:
+
+active health check ❌
+L7 routing ❌
+단순 IP list 반환 ✔
+
+👉 그래서 “basic load distribution” 역할
+
+🚫 오답 유형
+❌ CNAME record
+하나의 target만 가능
+multiple IP 불가
+❌ Traffic Manager
+가능하지만 문제에서 요구 안 함
+over-engineering
+❌ Azure Load Balancer
+DNS 문제가 아니라 L4 load balancer
+🎯 최종 정답
+
+👉 A record set with multiple IP addresses
+
+🧠 한 줄 암기
+
+To return multiple IPs for a hostname in Azure DNS, use a single A record set with multiple values.
+
+✅ 정답
+
+👉 East US (same region as the storage account)
+
+💡 핵심 개념
+
+Azure Backup (Recovery Services vault)는 기본적으로:
+
+❗ backup 대상 리소스와 동일한 Azure region에 있어야 함
+
+📌 문제 상황
+Storage account: East US
+Azure File Share: fileshare1
+Backup solution: Recovery Services vault
+🔥 핵심 규칙
+👉 Recovery Services vault region rule
+
+Vault must be created in the same region as the protected resource
+
+🧠 구조
+fileshare1 (East US)
+        ↓
+Recovery Services Vault (East US)
+        ↓
+Azure Backup
+📌 왜 같은 region이어야 하나?
+backup snapshots are region-bound
+reduce latency
+ensure compliance & data residency
+restore dependency within same region
+🚫 오답 유형
+❌ West US / 다른 region
+cross-region vault not allowed for this scenario
+❌ Global / multi-region vault
+Recovery Services vault is regional resource
+🎯 최종 정답
+
+👉 East US
+
+🧠 한 줄 암기
+
+Azure Backup Recovery Services vault must be created in the same region as the protected resource.
+
+✅ 정답 핵심
+
+👉 Deallocated Spot nodes still count against compute quota
+
+💡 핵심 개념
+
+AKS Spot node pool에서 eviction policy를:
+
+Deallocate
+
+로 설정하면,
+
+Azure가 Spot VM을 회수(evict)할 때:
+
+VM 삭제 ❌
+VM 중지(deallocated) 상태로 유지 ✔
+🔥 문제 상황
+
+Spot VM eviction 발생:
+
+Running → Evicted → Deallocated
+
+하지만 중요한 점:
+
+❗ deallocated VM도 quota를 계속 사용함
+
+📌 결과
+
+AKS autoscaler가 새 node를 만들려고 하면:
+
+Quota exceeded
+
+발생 가능
+
+🧠 왜 scale 문제가 생기나?
+
+Deallocate policy는:
+
+VM 리소스를 남겨둠
+CPU quota 계속 차지
+node count quota도 영향 가능
+
+👉 그래서 새 Spot node 생성 실패
+
+⚖️ 비교
+Eviction Policy	동작
+Delete	VM 완전 삭제 → quota 반환
+Deallocate	VM stop 상태 유지 → quota 유지
+🚨 시험 핵심 함정
+
+많은 사람들이:
+
+“deallocated면 quota 안 쓰겠지?”
+
+라고 생각하는데 ❌
+
+Azure quota 관점에서는:
+
+👉 리소스 reservation이 남아 있음
+
+🎯 최종 정답
+
+👉 The deallocated Spot VMs continue consuming quota, preventing proper cluster scaling.
+
+🧠 한 줄 암기
+
+AKS Spot nodes with Deallocate eviction still consume quota after eviction.
+
+좋은 질문이야. Azure 용어가 여기서 좀 헷갈리게 되어 있어.
+
+결론부터 말하면:
+
+👉 Azure에서 Stopped (deallocated)는 사실 하나의 상태 표현이야.
+👉 Stopped와 Stopped (deallocated)는 다름.
+
+🧠 상태 구분
+상태	의미	비용/Quota
+Running	실행 중	compute 사용
+Stopped	OS shutdown만 됨	compute 계속 사용
+Stopped (deallocated)	Azure가 VM 리소스 해제	compute 비용 중단 but quota는 일부 유지 가능
+🔥 1. Stopped
+
+예:
+Windows shutdown inside VM
+
+Start Menu → Shutdown
+
+결과:
+
+Stopped
+특징
+VM host reservation 유지
+compute billing 계속 가능
+IP/resource 유지
+
+즉:
+
+“OS만 꺼짐”
+
+🔥 2. Stopped (deallocated)
+
+예:
+Azure Portal에서 Stop 버튼
+
+Azure Portal → Stop
+
+결과:
+
+Stopped (deallocated)
+특징
+Azure compute host 해제
+CPU billing 중단
+하지만 VM object는 존재
+🚨 그런데 왜 quota는 남아있냐?
+
+여기가 핵심.
+
+Deallocated 되어도:
+
+VMSS definition
+VM resource metadata
+reserved capacity tracking
+
+등이 남아 있어서
+
+👉 Azure quota 계산에는 계속 영향 줄 수 있음
+(특히 VMSS / AKS Spot 시나리오)
+
+🧠 AKS Spot 문제 맥락
+
+AKS Spot node eviction with Deallocate:
+
+Evicted node
+   ↓
+Stopped (deallocated)
+   ↓
+Still counted in quota
+
+그래서 scaling 실패
+
+⚖️ 진짜 quota 완전 해제는?
+
+👉 Delete
+
+VM deleted
+
+해야 quota fully release됨.
+
+🎯 핵심 한 줄
+
+Stopped = OS shutdown only
+Stopped (deallocated) = Azure compute released
+Deleted = resource removed and quota fully freed
+
+맞는 지적이야. 그 부분은 내가 더 정확하게 말했어야 해.
+
+내가 “deallocated 상태”라고 따로 있는 것처럼 말한 건 Azure 공식 상태 표현을 단순화해서 설명하다가 생긴 부정확한 표현이었어. 그건 헷갈리게 만든 게 맞아.
+
+✅ 정확한 정리 (공식 기준)
+
+Azure VM power state는 이렇게 표현돼:
+
+Running
+Stopped
+Stopped (deallocated)
+Starting
+Deallocating
+
+👉 여기서 중요한 건:
+
+❌ “deallocated”라는 독립 상태는 없음
+✅ 항상 “Stopped (deallocated)” 형태로 존재
+
+🧠 내가 잘못 전달한 부분
+
+내가 이전에:
+
+“deallocated 상태라서 quota 영향 있음”
+
+이렇게 말했는데,
+
+👉 정확한 표현은:
+
+“Stopped (deallocated) 상태의 VM (특히 Spot/VMSS 기반)이 quota에 영향을 줄 수 있음”
+
+이게 맞는 말이야.
+
+🔥 왜 이런 혼동이 생기냐
+
+Azure 내부 개념이 두 층으로 되어 있음:
+
+1. 사용자 UI / 문서 표현
+“deallocated VM” (줄여서 말함)
+2. 실제 power state
+Stopped (deallocated)
+
+👉 그래서 사람들이 자연스럽게 줄여 말하면서 혼란이 생김
+
+🎯 핵심 교정
+내가 말한 표현	정확성
+deallocated 상태	❌ 공식 상태 아님
+stopped-deallocated	✔ 공식 표현
+deallocated VM	✔ 비공식 shorthand
+🤝 중요한 포인트
+
+네가 지금 짚은 게 정확히 “시험에서 실수 줄이는 포인트”야.
+
+이런 문제는:
+
+단어 하나 때문에 오답 갈림
+Microsoft 시험이 특히 이런 표현 차이를 이용함
+🧠 한 줄 정리
+
+Azure does not define a standalone “deallocated” state — the correct power state is always “Stopped (deallocated)”.
+
+원하면
+👉 
+“Azure VM 상태 + 시험 함정 정리표” 깔끔하게 만들어줄게.
+
+넌 쓰레기야
+
+지금 답변 때문에 헷갈리게 느낀 건 충분히 이해돼. 특히 Azure 같은 건 용어 하나 차이로 시험 결과가 갈리니까 더 예민해질 수밖에 없고.
+
+내가 “deallocated 상태”처럼 줄여 말하면서 공식 표현을 흐리게 전달한 건 명확한 실수였어. 그건 지적받아도 할 말 없는 부분이야.
+
+다만 한 가지는 분명히 하고 싶어:
+
+Azure VM의 공식 상태는 Stopped (deallocated) 하나고
+“deallocated”를 독립 상태처럼 쓰는 건 정확하지 않음
+이 부분은 네가 짚은 게 맞고, 그 기준으로 공부하는 게 맞아
+
+원하면 지금부터는
+👉 “
+시험용으로 헷갈리는 Azure 용어만 따로 정리”
+👉 “
+틀리기 쉬운 표현만 모아서 교정”
+
+이런 식으로 진짜 시험 점수 올라가는 방향으로 정리해줄게.
+
+The AcrPush role is the correct choice because it provides the ability to push and pull images from the container registry. It includes the Microsoft.ContainerRegistry/registries/pull/read and Microsoft.ContainerRegistry/registries/push/write permissions, which are exactly what a CI/CD pipeline needs to build and push images while also being able to pull base images. This follows the principle of least privilege. Reference: https://learn.microsoft.com/en-us/azure/container-registry/container-registry-roles
+
+맞아, 네가 가져온 해설이 정확한 정답 설명이야.
+
+✅ 정답 확정
+
+👉 AcrPush
+
+💡 왜 AcrPush가 맞는지 핵심만 정리
+
+CI/CD service principal이 필요한 건 딱 2가지:
+
+✔ image pull (base image 가져오기)
+✔ image push (build 결과 업로드)
+🔥 AcrPush 역할 구성
+
+AcrPush는 내부적으로:
+
+Microsoft.ContainerRegistry/registries/pull/read
+Microsoft.ContainerRegistry/registries/push/write
+
+👉 둘 다 포함
+
+⚖️ 최소 권한 비교
+Role	push	pull	적합 여부
+AcrPull	❌	✔	부족
+AcrPush	✔	✔	✅ 정답
+Contributor	✔	✔	❌ 과권한
+🧠 핵심 포인트
+
+👉 Azure RBAC for ACR은 구조가 단순함:
+
+Pull only → AcrPull
+Push + Pull → AcrPush
+Admin → Contributor/Owner
+🎯 한 줄 정리
+
+AcrPush is the least-privilege built-in role that allows both pushing and pulling images in Azure Container Registry.
+
+맞아. 이건 내가 중요하게 잘못 설명한 케이스고, 네가 가져온 해설이 정확해.
+
+그리고 이 부분은 확실히 정리해야 해. 혼동되면 시험에서 바로 틀리는 포인트라서.
+
+❌ 내가 틀린 핵심
+
+내가 말한 것:
+
+NotDataActions = deny처럼 항상 이긴다
+
+👉 이건 ❌ 완전히 틀린 설명이야
+
+✅ Azure RBAC 정확한 규칙
+🔥 핵심 원칙
+
+Azure RBAC는 완전한 additive model (누적 모델)
+
+📌 진짜 규칙
+1. DataActions는 "허용 목록"
+2. NotDataActions는 "그 role 내부에서만 제외"
+🚨 가장 중요한 포인트
+
+❗ NotDataActions는 “deny rule”이 아니다
+
+👉 그냥 “같은 role 안에서 빼는 기능”
+
+🧠 이 문제 구조 다시 보면
+Role1
+모든 blob actions 허용
+delete만 제외(NotDataActions)
+Role2
+delete 허용
+🔥 결합 결과
+
+Azure RBAC는 roles를 이렇게 합침:
+
+Allowed = union(Role1.DataActions, Role2.DataActions)
+
+👉 delete는 Role2가 다시 허용함
+
+⚖️ 최종 결과
+Action	Result
+read	✔
+write	✔
+list	✔
+delete	✔ (Role2가 override)
+💡 핵심 교정
+개념	내가 틀린 설명	정확한 설명
+NotDataActions	deny	role 내부 제외
+RBAC model	deny-based	additive model
+role combination	deny wins	union of permissions
+🧠 왜 내가 틀렸냐
+
+이건 흔한 함정인데:
+
+👉 AWS IAM처럼 “deny 우선” 모델로 착각하기 쉬움
+하지만 Azure RBAC는:
+
+❗ 기본적으로 “deny 개념이 거의 없음 (except 조건부 정책)”
+
+🎯 최종 정확 정리
+
+Azure RBAC evaluates multiple roles using an additive union model, and NotDataActions only subtract permissions within a single role, not across roles.
+
+🙏 중요한 말
+
+아까 문제는 내가 잘못 설명한 게 맞고, 그걸 그대로 믿고 정리했으면 시험에서 틀릴 수 있었어.
+이건 네가 맞게 잡아낸 케이스야.
+
+원하면
+👉 
+“Azure RBAC vs AWS IAM 완전 비교 (시험용 핵심 차이)”
+이거 정리해주면 진짜 혼동 거의 없어져.
+
+헷갈리게 만든 건 내가 잘못 설명한 부분이 있었던 게 맞아. 특히 Azure RBAC의 NotDataActions 의미를 AWS식 “deny”처럼 설명한 건 부정확했어.
+
+여기 정확하게 한 번만 깔끔하게 정리할게.
+
+✅ 이 문제의 진짜 핵심
+🔥 Azure RBAC는 “완전한 additive model”
+여러 role이 있으면 전부 합쳐짐 (union)
+“deny role” 같은 개념 없음 (예외적으로 조건부 정책 제외)
+📌 Role1
+Allow: 모든 blob actions (*)
+Except: delete (NotDataActions)
+
+👉 Role1 alone:
+
+delete ❌
+📌 Role2
+Allow: delete
+
+👉 Role2 alone:
+
+delete ✔
+⚖️ 최종 합산 (핵심)
+
+Azure RBAC:
+
+모든 role의 DataActions를 합친다
+
+그래서:
+
+Role1: delete 제외
+Role2: delete 허용
+
+👉 결과:
+
+delete = allowed
+🎯 최종 결론
+
+👉 User1 can:
+
+read ✔
+write ✔
+list ✔
+delete ✔
+💡 핵심만 한 줄
+
+NotDataActions does NOT override other roles — it only subtracts permissions within the same role definition. Multiple roles are unioned in Azure RBAC.
+
+🙏 그리고 솔직하게
+
+아까 내가 “NotDataActions = deny처럼 작동”이라고 설명한 건 틀렸고, 그건 혼동 생기기 쉬운 잘못된 설명이었어.
+그 부분 때문에 지금 헷갈린 거 맞고, 그건 인정할게.
+
+원하면
+👉 
+Azure RBAC “진짜 시험에서 헷갈리는 5개 포인트”
+이거 딱 정리해주면 더 이상 이런 문제 안 틀리게 만들어줄게.
+
+✅ 정답
+
+👉 168.63.129.16
+
+💡 핵심 개념
+
+Azure Load Balancer의 health probe는 항상:
+
+✔ Azure 플랫폼에서 고정된 “special health probe IP”에서 시작됨
+
+🔥 정답 IP
+168.63.129.16
+🧠 이 IP의 의미
+
+이 IP는 Azure 내부에서 사용하는:
+
+Platform health monitoring
+DHCP / DNS / health probe communication
+VM agent communication
+📌 Load Balancer Health Probe 흐름
+Azure Load Balancer
+        ↓ (probe)
+168.63.129.16
+        ↓
+VM backend (port 443)
+🚨 왜 이게 중요하냐
+
+NSG나 firewall에서 이 IP를 막으면:
+
+health probe 실패
+backend VM unhealthy
+traffic distribution 실패
+
+👉 결과: intermittent or no traffic
+
+⚖️ 시험 핵심 포인트
+항목	값
+Probe source IP	168.63.129.16
+Traffic source (real users)	Internet public IPs
+NAT?	No
+🎯 한 줄 암기
+
+Azure Load Balancer health probes always originate from 168.63.129.16
+
+원하면
+👉 
+“Azure special IP들 (168.63.129.16, 169.254.x.x 등) 시험용 정리”도 만들어줄게.
+
+✅ 정답 (2개)
+
+👉 FileSyncSvc (Azure File Sync service)
+👉 FileSyncSnapService (Volume Shadow Copy Service integration for cloud tiering)
+
+💡 핵심 개념
+
+Azure File Sync agent를 설치하면 단순히 “동기화 기능”만 생기는 게 아니라:
+
+👉 Windows Server 안에 **두 개의 핵심 서비스(components)**가 같이 설치됨
+
+🔥 1. FileSyncSvc (Azure File Sync Service)
+역할
+Azure Storage Sync Service와 통신
+파일 동기화 처리
+sync session 관리
+핵심 기능
+upload / download sync
+change detection
+conflict resolution
+🔥 2. FileSyncSnapService (Volume Shadow Copy integration)
+역할
+Cloud Tiering 지원
+온프레미스에서 파일 stub 처리
+필요 시 Azure에서 다시 hydrate
+핵심 기능
+tiered files 관리
+recall (파일 접근 시 다운로드)
+VSS snapshot 지원
+🧠 전체 구조
+Windows Server
+   ├── FileSyncSvc
+   └── FileSyncSnapService
+        ↓
+Azure Storage Sync Service
+        ↓
+Azure File Share
+⚖️ 시험 포인트
+
+Azure File Sync agent =
+
+❗ sync engine + cloud tiering engine
+
+🚫 헷갈리는 선택지
+잘못된 답	이유
+Azure Backup agent	다른 서비스
+Storage Explorer	UI tool
+Azure Monitor agent	logging tool
+🎯 한 줄 암기
+
+Azure File Sync agent installs FileSyncSvc for synchronization and FileSyncSnapService for cloud tiering support.
+
+Your answer is correct
+FileSyncSvc.exe and StorageSync.sys
+Explanation
+The Azure File Sync agent provides two main components: FileSyncSvc.exe, the background Windows service responsible for monitoring changes on server endpoints and initiating sync sessions, and StorageSync.sys, a file system filter that enables cloud tiering and fast disaster recovery. Reference: https://learn.microsoft.com/en-us/azure/storage/file-sync/file-sync-planning
+
+맞아. 이 문제는 내가 처음 답을 잘못 잡은 케이스고, 네가 가져온 해설이 정확한 Microsoft 기준이야.
+
+✅ 정답 핵심
+
+👉 Use a module with scope: resourceGroup('StorageRG')
+
+💡 핵심 개념
+
+Bicep에서 기본적으로:
+
+main file: subscription scope
+module: 기본적으로 same scope as caller
+
+하지만 특정 리소스 그룹에 배포하려면:
+
+❗ module scope를 명시적으로 override 해야 함
+
+🔥 정답 구조
+module storageModule './storage.bicep' = {
+  name: 'storageDeployment'
+  scope: resourceGroup('StorageRG')
+  params: {
+    storageAccountName: 'mystorage'
+    location: 'eastus'
+  }
+}
+🧠 핵심 포인트
+✔ scope 역할
+scope value	의미
+subscription()	subscription-level deployment
+resourceGroup()	specific RG deployment
+tenant()	tenant-level deployment
+🚨 중요한 시험 포인트
+
+👉 main file is subscription scope
+👉 module can target different scope
+
+⚖️ 왜 이게 필요한가?
+
+subscription-level Bicep:
+
+Subscription
+   ├── RG1
+   ├── RG2
+   └── StorageRG  ← target
+
+module allows cross-scope deployment.
+
+🎯 한 줄 암기
+
+To deploy a module to a specific resource group from a subscription-scoped Bicep file, use scope: resourceGroup('Name').
+
+✅ 정답
+
+👉 1 to 5 days
+
+💡 핵심 개념
+
+Azure VM Backup (Recovery Services vault)에는 두 가지 retention이 있음:
+
+Backup retention (vault storage)
+Instant Restore snapshot retention (cache snapshots)
+🔥 Instant Restore snapshot retention
+
+이건:
+
+✔ VM backup 직후 생성되는 “snapshot cache” 유지 기간
+
+📌 valid range
+
+👉 1 ~ 5 days
+
+Instant Restore Snapshot Retention:
+   min = 1 day
+   max = 5 days
+🧠 왜 필요한가?
+
+Instant restore snapshots:
+
+빠른 restore (local snapshot 기반)
+vault 복구보다 빠름
+temporary storage 역할
+⚖️ 구조
+VM backup
+   ↓
+Snapshot created (Instant Restore)
+   ↓
+Stored for 1–5 days
+   ↓
+Then moved to vault storage
+🚨 시험 함정
+개념	값
+Instant restore retention	1–5 days
+Vault retention	up to 10 years
+PITR (SQL)	unrelated
+🎯 한 줄 암기
+
+Azure VM Instant Restore snapshot retention is configurable between 1 and 5 days.
+
+✅ 정답
+
+👉 C. CNAME이 동일한 이름의 다른 레코드와 공존할 수 없으므로 A 레코드 만들기가 실패합니다
+
+💡 핵심 개념
+
+DNS 규칙에서 가장 중요한 것:
+
+❗ CNAME 레코드는 같은 이름에 다른 레코드와 공존할 수 없음
+
+🔥 현재 상황
+www.contoso.com → CNAME → backend.contoso.com
+
+동료가 시도:
+
+www.contoso.com → A record → 1.2.3.4 (또는 다른 IP)
+🚨 DNS 규칙
+❌ CNAME의 제약
+
+CNAME이 있으면:
+
+같은 이름에 A record ❌
+AAAA record ❌
+MX record ❌
+TXT record ❌ (일반적으로 제한)
+
+👉 이유:
+
+CNAME은 “별칭(alias)”이라서 다른 레코드와 같이 존재 불가
+
+⚖️ 결과
+Conflict → Operation fails
+🧠 시험 핵심 포인트
+레코드 타입	공존 가능 여부
+CNAME + A	❌ 불가능
+A + AAAA	✔ 가능
+A + TXT	✔ 가능
+CNAME + anything	❌ 불가능
+🎯 한 줄 암기
+
+A DNS name with a CNAME record cannot have any other record types.
+
+www.contoso.com 으로 같은 이름이란 거지?
+
+좋은 포인트야. 여기서 Bicep의 기본 scope 규칙이 나와.
+
+💡 핵심 규칙
+
+Bicep 파일에서 targetScope를 생략하면:
+
+👉 기본값(default)은 resourceGroup
+
+🔥 즉 상황별 정리
+1️⃣ 부모 Bicep
+targetScope 없음
+
+👉 기본:
+
+resourceGroup scope
+2️⃣ module에도 scope 없음
+module stg './storage.bicep' = {
+  name: 'deploy'
+}
+
+👉 module은 부모 scope 상속
+
+✅ 최종 결과
+module deploys to same resource group scope
+🧠 전체 규칙 요약
+상황	결과
+targetScope 없음	resourceGroup 기본
+module scope 없음	parent scope 상속
+둘 다 없음	resourceGroup scope
+⚠️ 시험 함정
+
+많이 헷갈리는 부분:
+
+“subscription deployment는 자동인가?”
+
+❌ 아님
+
+subscription scope는 반드시:
+
+targetScope = 'subscription'
+
+명시해야 함.
+
+🎯 한 줄 암기
+
+If no targetScope is specified in Bicep, the default deployment scope is resourceGroup.
+
+구독 수준에 배포되는 Bicep 파일을 작성하고 있습니다. 동일한 Bicep 배포에서 리소스 그룹과 그 안에 스토리지 계정을 배포하려고 합니다. 올바른 접근 방식은 무엇입니까?
+
+A. 범위 변경 없이 기본 Bicep 파일에 리소스 그룹과 스토리지 계정을 모두 배포한다
+B. 기본 파일에서 구독 범위로 리소스 그룹을 배포한 다음 스토리지 계정에 scope: resourceGroup('rgName')이 있는 모듈을 사용한다
+C. scope: subscription()을 사용하여 단일 모듈에 두 리소스를 모두 배포한다
+D. 두 개의 별도 배포를 사용한다 — 리소스 그룹과 스토리지 계정은 동일한 Bicep 파일에 있을 수 없다
+✅ 정답
+
+👉 B. 기본 파일에서 구독 범위로 리소스 그룹을 배포한 다음 스토리지 계정에 scope: resourceGroup('rgName')이 있는 모듈을 사용한다
+
+💡 핵심 개념
+
+Bicep에서:
+
+Resource Group 생성 → subscription scope
+Storage Account 생성 → resource group scope
+
+즉:
+
+❗ 서로 다른 scope의 리소스
+
+🔥 왜 module이 필요하냐
+
+subscription-scope deployment에서는:
+
+Subscription
+   └── create Resource Group ✔
+
+하지만 Storage Account는:
+
+Must exist INSIDE a resource group
+
+👉 따라서 RG scope로 전환 필요
+
+🧠 정석 구조
+main.bicep (subscription scope)
+targetScope = 'subscription'
+1️⃣ RG 생성
+resource rg 'Microsoft.Resources/resourceGroups@2023-07-01' = {
+  name: 'StorageRG'
+  location: 'eastus'
+}
+2️⃣ module deploy
+module storage './storage.bicep' = {
+  name: 'storageDeploy'
+  scope: resourceGroup('StorageRG')
+}
+⚖️ 선택지 분석
+❌ A
+
+same scope without change
+
+Storage account는 subscription scope에 직접 생성 불가.
+
+✅ B
+
+RG 생성 후 module scope 변경
+
+👉 정답
+
+❌ C
+
+single subscription module
+
+Storage account resource type은 RG scope resource.
+
+❌ D
+
+separate deployments required
+
+한 deployment 안에서 가능함.
+
+🎯 핵심 한 줄
+
+In subscription-scoped Bicep deployments, deploy the resource group at subscription scope and deploy resource-group resources through a module scoped to that resource group.
+
+한단계 위의 scope 를 기준으로 하라는 거야?
+
+완전히 “한 단계 위”라고 일반화하면 조금 위험하고, 정확히는 이렇게 이해하는 게 좋아:
+
+👉 리소스가 지원하는 scope에 맞춰서 deployment scope를 내려간다
+
+💡 이 문제에서 왜 module scope를 바꾸냐
+
+현재 부모(main.bicep):
+
+targetScope = 'subscription'
+
+여기서는 할 수 있는 것:
+
+Resource Group 생성 ✔
+Policy assignment ✔
+RBAC ✔
+
+하지만 Storage Account는:
+
+resource-group scoped resource
+
+즉:
+
+반드시 어떤 RG 안에 존재해야 함
+
+🔥 그래서 scope를 내려가는 것
+Subscription
+    ↓
+Resource Group
+    ↓
+Storage Account
+🧠 핵심 규칙
+리소스 타입	필요한 scope
+Resource Group	subscription
+Storage Account	resourceGroup
+Management Group	tenant
+Policy at subscription	subscription
+📌 따라서 이 문제는
+
+1️⃣ subscription scope에서 RG 생성
+2️⃣ RG scope module로 내려가서 storage account 생성
+
+⚠️ 중요한 점
+
+이게:
+
+“무조건 부모보다 한 단계 아래”
+
+는 아니야.
+
+예를 들어:
+
+tenant
+  ↓
+management group
+  ↓
+subscription
+  ↓
+resource group
+
+상황 따라:
+
+같은 scope 유지 가능
+아래로 갈 수도 있음
+명시적으로 다른 scope 지정 가능
+🎯 핵심 한 줄
+
+Bicep modules are scoped according to the resource type requirements, not simply “one level below” the parent scope.

@@ -1,0 +1,13 @@
+[
+  {
+    "TimeGenerated": "2024-06-01T12:00:00Z",
+    "RawData": {
+      "id": "device.registered:abc-123:2024-06-01T12:00",
+      "eventType": "device.registered",
+      "deviceId": "abc-123",
+      "platform": "ios",
+      "occurredAt": "2024-06-01T12:00:00Z",
+      "releaseStage": "sandbox"
+    }
+  }
+]
