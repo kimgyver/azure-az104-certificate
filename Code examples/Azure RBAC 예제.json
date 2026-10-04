@@ -1,4 +1,5 @@
 // 아래 코드는 특정 사용자에게 가상 머신(VM)을 읽고, 쓰고, 삭제할 수 있는 권한을 주는 'Contributor(기여자가)' 역할의 정의입니다. 사람이나 그룹에 매핑됩니다.
+// Actions, NotActions
 {
   "Name": "Virtual Machine Contributor",
   "IsCustom": true,

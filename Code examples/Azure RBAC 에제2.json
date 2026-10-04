@@ -1,0 +1,15 @@
+// 가상 머신에 대한 모든 권한을 부여하되 삭제 권한만 제외하는 Azure RBAC 사용자 지정 역할 (사람이나 그룹에 매핑함)
+// Actions, NotActions
+{
+    "Name": "Virtual Machine Contributor No Delete",
+    "IsCustom": true,
+    "Actions": [
+      "Microsoft.Compute/virtualMachines/*"
+    ],
+    "NotActions": [
+      "Microsoft.Compute/virtualMachines/delete"
+    ],
+    "DataActions": [],
+    "NotDataActions": [],
+    "AssignableScopes": ["/subscriptions/your-subscription-id"]
+  }
