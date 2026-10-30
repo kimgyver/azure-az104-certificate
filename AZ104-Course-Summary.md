@@ -32,6 +32,8 @@
 26. [2026 Gap Fill: Expected Questions Set 12](#section-26--2026-gap-fill-expected-questions-set-12)
 27. [2026 Gap Fill: Expected Questions Set 14](#section-27--2026-gap-fill-expected-questions-set-14)
 28. [2026 Gap Fill: Expected Questions Set 13](#section-28--2026-gap-fill-expected-questions-set-13)
+29. [Official Microsoft Practice Assessment](AZ104-Official-Practice-Assessment.md) — 무료 공식 모의고사 위치 (AI Skills Navigator). 이 폴더 예상 문제와 다름
+30. [Gap set 31](AZ104-Practice-Questions-KO-Set31.md) — 2026-04-17 스킬 가이드 공백 40문항 (EN: [Set31 EN](AZ104-Practice-Questions-EN-Set31.md))
 
 ---
 
@@ -265,6 +267,25 @@
 | RA-GRS | GRS + read access to secondary region |
 | RA-GZRS | GZRS + read access to secondary region |
 
+**Do not mix this with Backup vault storage.** A Storage Account can pick RA-GRS in the redundancy dropdown. A Recovery Services vault only offers LRS / ZRS / GRS; Cross Region Restore on GRS is what becomes RA-GRS behind the scenes.
+
+**Azure Files does not support RA-GRS or RA-GZRS.** Blob, Queue, and Table do (on Standard GPv2). Premium file/blob accounts are usually LRS/ZRS only.
+
+#### AzCopy and Storage Explorer
+- **Storage Explorer**: GUI browse/upload; fine for small jobs
+- **AzCopy**: scripted copies; **server-to-server** when both ends are Azure (data does not flow through your PC)
+- Entra ID: `azcopy login` + data-plane RBAC (e.g. Storage Blob Data Contributor). Do not put account keys in scripts if you can avoid it
+- `azcopy copy` = copy. `azcopy sync` = one-way sync (can delete destination orphans)
+
+#### Object replication (blobs)
+- Copies **block blobs** asynchronously to another account/container **you** choose (not the same as GRS)
+- Source needs **blob versioning + change feed**; destination needs **versioning**
+- Policy is created on the source account
+
+#### Soft delete vs versioning
+- **Soft delete**: recover **deleted** blobs/versions
+- **Versioning**: recover **overwrites** (previous content). Soft delete alone does not keep overwrite history
+
 #### Shared Access Signatures (SAS)
 - **User Delegation SAS**: Signed with Azure AD credentials (most secure)
 - **Service SAS**: Access one storage service only
@@ -320,6 +341,24 @@
 | RA-GRS | GRS + 보조 지역 읽기 액세스 |
 | RA-GZRS | GZRS + 보조 지역 읽기 액세스 |
 
+**Backup vault 중복성과 섞지 말 것.** Storage Account는 드롭다운에서 RA-GRS를 고를 수 있다. Recovery Services vault는 LRS / ZRS / GRS만 보이며, GRS에서 Cross Region Restore를 켜면 뒤에서 RA-GRS가 된다.
+
+**Azure Files는 RA-GRS / RA-GZRS를 지원하지 않는다.** Blob, Queue, Table은 Standard GPv2에서 지원. 프리미엄 파일/블롭은 보통 LRS/ZRS만.
+
+#### AzCopy와 Storage Explorer
+- **Storage Explorer**: GUI 탐색/업로드. 소량 작업
+- **AzCopy**: 스크립트 복사. 양쪽이 Azure면 **서버 간 복사**(PC를 거치지 않음)
+- Entra ID: `azcopy login` + 데이터 평면 RBAC(예: Storage Blob Data Contributor)
+- `azcopy copy` = 복사. `azcopy sync` = 한 방향 동기화(대상 고아 개체 삭제 가능)
+
+#### 개체 복제(Blob)
+- **블록 Blob**을 내가 고른 다른 계정/컨테이너로 **비동기** 복사. GRS와 다름
+- 원본: **버전 관리 + 변경 피드**. 대상: **버전 관리**. 정책은 원본 계정에 생성
+
+#### 일시 삭제 vs 버전 관리
+- **일시 삭제**: **삭제된** Blob/버전 복구
+- **버전 관리**: **덮어쓰기** 이전 내용 복구. 일시 삭제만으로는 덮어쓰기 이력이 안 남음
+
 #### SAS(공유 액세스 서명)
 - **사용자 위임 SAS**: Azure AD 자격 증명으로 서명(가장 안전)
 - **서비스 SAS**: 하나의 스토리지 서비스만 액세스
@@ -373,21 +412,28 @@
 
 #### Key Post-Deployment Tasks
 - **Add Data Disk**: Attach managed disks; can be Standard or Premium
-- **Disk Encryption**:
-  - Platform-managed keys (default, no config required)
-  - Customer-managed keys: Requires Azure Key Vault + Disk Encryption Set in same region & subscription
-  - Double encryption: Platform + Customer keys combined
+- **Disk / host encryption** (three different layers — exam trick):
+  - **SSE (storage)**: PMK by default; CMK via Key Vault + Disk Encryption Set (same region & subscription); optional double encryption (platform + customer)
+  - **Azure Disk Encryption (ADE)**: BitLocker/DM-Crypt **inside the guest OS**
+  - **Encryption at host**: encrypts **temp disk, OS/data disk caches, ephemeral OS disk** on the hypervisor. Enable at **create** or after **deallocate**. Does not replace SSE; not the same as ADE
 - **Set Static IP**:
   - Private IP: Go to NIC → IP Configurations → change from Dynamic to Static
   - Public IP: Go to Public IP resource → Configuration → Static (may reboot VM)
 - **Add NIC**: VM must be stopped/deallocated first; NIC must be in same region
 - **DNS Label**: Add to Public IP resource for a user-friendly hostname
+- **Move VM**:
+  - Same region → another RG or another subscription in the **same Entra tenant**: resource **Move**
+  - **Cross-region**: Azure Resource Mover, ASR, or backup/restore. Move API does **not** change region
 
 #### VM Scale Sets
-- Pool of identical VMs behind a load balancer
-- Autoscaling based on CPU/memory/network metrics
-- Scale Out: Add VMs when CPU threshold exceeded for a duration
-- Scale In Policies: Default (highest instance ID), Newest VM, Oldest VM
+- **Flexible** (recommended): standard VM API, optional scaling profile, can mix sizes (instance mix), Spot + regular
+- **Uniform**: identical instances; **scaling profile required**; scale-set VM API
+- Autoscaling is Azure Monitor autoscale: **Default** (cannot delete) + **Recurrence** (days of week) + **Fixed-date** (one event)
+- Profile evaluation order: **Fixed-date → Recurrence → Default** (first match wins)
+- If metrics cannot be read and current capacity is below Default, scale out to Default
+- Scale-in policies: Default (highest instance ID), Newest VM, Oldest VM
+- Premium SSD **performance tier** (P15→P20) can change while the VM is running; increasing **size** is a different operation
+- **Shared Disk**: one managed disk attached to multiple VMs (WSFC / clustered apps)
 
 #### VHD/Snapshot-Based Deployment
 1. Take snapshot of existing VM's OS disk
@@ -403,21 +449,28 @@
 
 #### 주요 배포 후 작업
 - **데이터 디스크 추가**: 관리형 디스크 연결; 표준 또는 프리미엄
-- **디스크 암호화**:
-  - 플랫폼 관리 키(기본값, 별도 구성 불필요)
-  - 고객 관리 키: 동일 지역 및 구독에 Azure Key Vault + 디스크 암호화 세트 필요
-  - 이중 암호화: 플랫폼 + 고객 키 결합
+- **디스크 / 호스트 암호화** (시험이 세 층을 섞음):
+  - **SSE(스토리지)**: 기본 PMK; CMK는 Key Vault + 디스크 암호화 세트(같은 지역·구독); 선택적 이중 암호화
+  - **Azure Disk Encryption(ADE)**: 게스트 OS 안 BitLocker/DM-Crypt
+  - **Encryption at host**: 호스트에서 **임시 디스크, OS/데이터 디스크 캐시, 임시 OS 디스크** 암호화. **만들기 시** 또는 **할당 취소 후** 사용. SSE 대체 아님, ADE와 다름
 - **정적 IP 설정**:
   - 프라이빗 IP: NIC → IP 구성 → 동적에서 정적으로 변경
   - 공용 IP: 공용 IP 리소스 → 구성 → 정적(VM 재시작될 수 있음)
 - **NIC 추가**: VM을 먼저 중지/할당 해제해야 함; NIC는 동일 지역에 있어야 함
 - **DNS 레이블**: 공용 IP 리소스에 추가하여 친숙한 호스트 이름 사용 가능
+- **VM 이동**:
+  - 같은 리전 → 다른 RG 또는 **같은 Entra 테넌트**의 다른 구독: 리소스 **이동(Move)**
+  - **리전을 넘김**: Azure Resource Mover, ASR, 또는 백업/복원. Move API는 리전을 바꾸지 않음
 
 #### VM 확장 집합(Scale Sets)
-- 로드 밸런서 뒤의 동일한 VM 풀
-- CPU/메모리/네트워크 메트릭을 기반으로 자동 크기 조정
-- 스케일 아웃: CPU 임계값이 일정 시간 초과 시 VM 추가
+- **Flexible**(권장): 표준 VM API, 스케일링 프로파일 선택, 크기 혼합(instance mix), Spot+일반
+- **Uniform**: 동일 인스턴스; **스케일링 프로파일 필수**; 스케일 셋 VM API
+- 자동 크기 조정은 Azure Monitor 오토스케일: **Default**(삭제 불가) + **Recurrence**(요일) + **Fixed-date**(특정 기간)
+- 평가 순서: **Fixed-date → Recurrence → Default** (처음 맞는 것만)
+- 메트릭을 못 읽고 현재가 Default보다 작으면 Default까지 확장
 - 스케일 인 정책: 기본값(가장 높은 인스턴스 ID), 최신 VM, 가장 오래된 VM
+- Premium SSD **성능 계층**(P15→P20)은 VM 실행 중 변경 가능. **크기** 증가는 별도
+- **공유 디스크(Shared Disk)**: 관리 디스크 하나를 여러 VM에 (WSFC 등)
 
 #### VHD/스냅샷 기반 배포
 1. 기존 VM의 OS 디스크 스냅샷 촬영
@@ -882,9 +935,19 @@
 
 ### EN
 
+#### Two vault types (do not mix)
+| Vault | Typical workloads |
+|--------|-------------------|
+| **Recovery Services vault** | Azure **VMs**, Azure Files, SQL/HANA on VMs, MARS |
+| **Backup vault** | Azure **Disks**, Blobs, PostgreSQL, AKS |
+
+- RSV for VM backup must be in the **same region** as the VM
+- RSV storage dropdown is **LRS / ZRS / GRS only** — there is no RA-GRS choice
+- **Cross Region Restore (CRR)**: enable on a **GRS** vault → secondary copy becomes readable (RA-GRS). Restore to the paired region **without** waiting for Microsoft to declare a disaster. Extra cost; often cannot revert after first protection
+- CRR is **not** Site Recovery. CRR restores a **backup point**. ASR replicates and **fails over**
+
 #### Recovery Services Vault
-- Container for backup data and backup policies
-- Must be in the **same region** as the VMs being backed up
+- Container for backup data and backup policies (VM/Files path)
 - Geo-redundant storage by default (GRS)
 
 #### Backup Policies
@@ -902,11 +965,25 @@
 2. **Restore Disks**: Restore disk only; use it to create a custom VM
 3. **Replace Existing**: Replace disks on existing VM (VM must exist); Azure takes a pre-restore snapshot automatically
 
+#### Backup reports
+- Send vault diagnostics to a **Log Analytics** workspace, then use Backup Reports / Backup center
+- Reports are not just the vault Overview blade
+
 ### 한국어
 
+#### Vault 두 종류 (섞지 말 것)
+| Vault | 대표 워크로드 |
+|--------|----------------|
+| **Recovery Services vault** | Azure **VM**, Azure Files, VM 위 SQL/HANA, MARS |
+| **Backup vault** | Azure **Disks**, Blob, PostgreSQL, AKS |
+
+- VM 백업용 RSV는 VM과 **같은 지역**
+- RSV 스토리지 선택지는 **LRS / ZRS / GRS만** — RA-GRS 항목 없음
+- **Cross Region Restore (CRR)**: **GRS** vault에서 켬 → 2차 복사본을 읽음(RA-GRS). Microsoft 재해 선언 없이 페어 리전에 복원. 추가 요금, 보호 시작 후 내리기 어려움
+- CRR ≠ ASR. CRR은 **백업 시점 복원**. ASR은 복제 후 **장애 조치**
+
 #### Recovery Services Vault (백업용)
-- 백업 데이터 및 백업 정책의 컨테이너
-- 백업할 VM과 **동일한 지역**에 있어야 함
+- 백업 데이터 및 백업 정책의 컨테이너 (VM/Files 경로)
 - 기본적으로 지역 중복 스토리지(GRS) 사용
 
 #### 백업 정책
@@ -924,6 +1001,10 @@
 2. **디스크 복원**: 디스크만 복원; 사용자 지정 VM 생성에 사용
 3. **기존 항목 교체**: 기존 VM의 디스크 교체(VM이 존재해야 함); Azure가 복원 전 스냅샷 자동 촬영
 
+#### 백업 보고서
+- vault 진단을 **Log Analytics**로 보낸 뒤 Backup Reports / Backup center 사용
+- vault 개요 화면만으로는 보고서가 아님
+
 ---
 
 ## 16. Azure Site Recovery (ASR)
@@ -936,6 +1017,9 @@
 - **Test Failover**: Test the failover without affecting production; clean up afterward
 - **Failover**: Shuts down source VM → syncs latest data → starts VM in target region
 - **Failback**: After failover, can replicate back to original region
+- **Commit** finalizes failover and deletes prior recovery points — cannot undo
+- After a production failover, **reprotect** (reverse replication) is required before failback
+- Exam: minutes-level RPO + failover/commit/reprotect → **ASR**. Restore backup in paired region anytime → **CRR**
 
 ### 한국어
 - Azure 지역 간 VM 복제 또는 온프레미스에서 Azure로 복제
@@ -945,6 +1029,9 @@
 - **테스트 장애 조치**: 프로덕션에 영향 없이 장애 조치 테스트; 이후 정리
 - **장애 조치**: 원본 VM 종료 → 최신 데이터 동기화 → 대상 지역에서 VM 시작
 - **장애 복구**: 장애 조치 후 원래 지역으로 다시 복제 가능
+- **커밋**은 failover를 확정하고 기존 복구 지점을 삭제 — 취소 불가
+- 프로덕션 failover 이후 failback 전에 **다시 보호(reprotect)** 로 복제 방향을 바꿈
+- 시험: 분 단위 RPO + failover/커밋/재보호 → **ASR**. 페어 리전에 백업 복원(훈련 가능) → **CRR**
 
 #### 용어/지역 규칙 주의
 - Azure Backup: Recovery Services Vault는 **원본 VM과 같은 지역**
@@ -972,7 +1059,8 @@
 - Alert fired → action group triggered → email/SMS/webhook/etc. sent
 - **Action Groups**: Reusable notification configurations; max 2000 per subscription
   - Action Types: Email, SMS, Voice, Azure Function, Logic App, Webhook, ITSM, Automation Runbook
-- **Action Rules**: Suppress alerts during planned maintenance windows
+- **Alert processing rules** (formerly action rules): suppress **notifications** (or add action groups) during maintenance. The alert still fires and stays in the portal. Do not delete the alert rule for a maintenance window
+- Action group = **who/how** to notify. Alert rule = **when**. Processing rule = **filter/suppress/add** those notifications
 
 #### Diagnostic Settings
 - Enable on individual resources via: Azure Monitor → Diagnostic settings → filter → Add diagnostic setting
@@ -980,8 +1068,9 @@
 - Configure metrics and retention period (0 = infinite)
 
 #### Log Analytics
-- Query logs using KQL (Kusto Query Language)
+- Query logs using KQL (Kusto Query Language), not SQL
 - Workspace-based; resources send logs to workspace
+- Example: `Heartbeat | where TimeGenerated > ago(1h) | summarize by Computer`
 
 ### 한국어
 
@@ -1000,7 +1089,8 @@
 - 경보 발생 → 작업 그룹 트리거 → 이메일/SMS/웹훅 등 전송
 - **작업 그룹**: 재사용 가능한 알림 구성; 구독당 최대 2000개
   - 작업 유형: 이메일, SMS, 음성, Azure Function, Logic App, 웹훅, ITSM, Automation Runbook
-- **작업 규칙**: 계획된 유지 관리 창 동안 경보 억제
+- **경고 처리 규칙**(구 action rules): 유지 보수 동안 **알림을 억제**(또는 액션 그룹 추가). 경고는 계속 발생하고 포털에 남음. 규칙을 지우지 말 것
+- 액션 그룹 = **누구에게**. 경고 규칙 = **언제**. 처리 규칙 = 그 알림을 **걸러/억제/추가**
 
 #### 진단 설정
 - 개별 리소스에서 활성화: Azure Monitor → 진단 설정 → 필터 → 진단 설정 추가
@@ -1008,8 +1098,9 @@
 - 메트릭 및 보존 기간 구성(0 = 무한)
 
 #### Log Analytics
-- KQL(Kusto Query Language)을 사용하여 로그 쿼리
+- KQL(Kusto Query Language)로 로그 쿼리. SQL 아님
 - 워크스페이스 기반; 리소스에서 워크스페이스로 로그 전송
+- 예: `Heartbeat | where TimeGenerated > ago(1h) | summarize by Computer`
 
 ---
 
@@ -1020,8 +1111,8 @@
 | Manage Azure identities and governance | ~20-25% | Entra ID, RBAC, Policy, Locks, Subscriptions |
 | Implement and manage storage | ~15-20% | Storage accounts, Blob, Files, SAS, Import/Export |
 | Deploy and manage Azure compute resources | ~20-25% | VMs, Scale Sets, ARM Templates, Containers |
-| Configure and manage virtual networking | ~15-20% | vNet, NSG/ASG, Endpoints, Load Balancer, VPN, DNS, Peering |
-| Monitor and maintain Azure resources | ~10-15% | Azure Monitor, Backup, Site Recovery, Alerts |
+| Implement and manage virtual networking | ~15-20% | vNet, peering, public IP, UDR, NSG/ASG, Bastion, service/private endpoints, DNS, Load Balancer (VPN/ExpressRoute/Firewall are not core as of 2026-04-17) |
+| Monitor and maintain Azure resources | ~10-15% | Azure Monitor, KQL, alert processing rules, Network Watcher, Backup vault + RSV, CRR, Site Recovery |
 
 ---
 
@@ -1030,13 +1121,13 @@
 ### EN
 - Policy Definition vs Initiative: A policy definition is one rule; an initiative groups multiple policy definitions and is assigned by scope (management group/subscription/resource group).
 - Stored Access Policy: Useful when you need centralized control for SAS start/expiry/permissions and quick revocation behavior.
-- Storage Redundancy: GRS/GZRS secondary is not read-enabled by default; read access requires RA-GRS or RA-GZRS.
+- Storage Redundancy: GRS/GZRS secondary is not read-enabled by default; read access requires RA-GRS or RA-GZRS on a **Storage Account**. Backup CRR is the vault equivalent (GRS + toggle), not a vault dropdown named RA-GRS.
 - Storage Account Choice: Standard general-purpose v2 is the recommended default for Blob/Files/Queue/Table scenarios.
 
 ### 한국어
 - Policy Definition과 Initiative 구분: Definition은 단일 규칙, Initiative는 여러 규칙 묶음이며 스코프(관리 그룹/구독/리소스 그룹)에 할당해 적용합니다.
 - Stored Access Policy: SAS의 시작/만료/권한을 중앙에서 바꾸고 빠르게 통제해야 할 때 유용합니다.
-- 스토리지 복제: GRS/GZRS는 보조 지역 읽기가 기본이 아니며, 읽기까지 필요하면 RA-GRS 또는 RA-GZRS를 사용합니다.
+- 스토리지 복제: GRS/GZRS는 보조 지역 읽기가 기본이 아니며, 읽기까지 필요하면 **Storage Account**에서 RA-GRS 또는 RA-GZRS. 백업 CRR은 vault에서 GRS + 스위치이며, vault 드롭다운에 RA-GRS가 없습니다.
 - 스토리지 계정 선택: 일반적으로 Standard GPv2를 기본 선택으로 보고, 워크로드에 따라 계층/복제를 조정합니다.
 
 ---
@@ -1050,6 +1141,9 @@
 - **Azure Container Instances (ACI)**: Fast serverless container execution (per-second billing)
 - **Azure Container Apps (ACA)**: Managed environment for microservices/jobs with scaling and revisions
 - Exam focus: When to choose ACI vs ACA, and how ACR integrates with both
+- **ACI**: short-lived jobs, no built-in scale/ingress
+- **ACA**: HTTP APIs / microservices, scale **to zero**, revisions, ingress — no Kubernetes API
+- **AKS**: only if you need the Kubernetes control plane (out of the April 2026 AZ-104 core list; do not over-study)
 
 #### Azure App Service
 **What is it?** App Service is Azure's fully managed PaaS platform for hosting web applications, REST APIs, and mobile backends. You deploy your code (or containers); Azure handles OS patching, scaling, load balancing, and TLS. Cost is based on the App Service Plan tier, not individual VM instances.
@@ -1079,8 +1173,10 @@
 - Always validate with Effective Routes in Network Watcher when troubleshooting
 
 #### Backup Vault vs Recovery Services Vault
-- Recovery Services Vault is used for Azure Backup and Site Recovery scenarios in AZ-104 context
-- Questions may test vault type selection and region constraints by scenario
+- **RSV**: Azure VMs, Azure Files, SQL/HANA on VMs, MARS; also used by **ASR** (vault in the **target** region)
+- **Backup vault**: Disks, Blobs, PostgreSQL, AKS
+- Region trap: Backup RSV = **same** region as VM. ASR RSV = **different** (recovery) region
+- CRR is an RSV **GRS + toggle**, not a Backup vault SKU named RA-GRS
 
 ### 한국어
 
@@ -1089,6 +1185,9 @@
 - **ACI**: 초고속 서버리스 컨테이너 실행(초 단위 과금)
 - **ACA**: 마이크로서비스/잡 실행을 위한 관리형 플랫폼(스케일링/리비전)
 - 시험 포인트: ACI vs ACA 선택 기준, ACR 연계 방식
+- **ACI**: 단기 잡, 스케일/인그레스 없음
+- **ACA**: HTTP API/마이크로서비스, **0까지 스케일**, 리비전, 인그레스 — kubectl 없음
+- **AKS**: Kubernetes 컨트롤 플레인이 필요할 때만 (2026-04-17 AZ-104 핵심 목록 밖. 과하게 외우지 말 것)
 
 #### Azure App Service
 **정의**: Azure App Service는 웹 애플리케이션, REST API, 모바일 백엔드를 호스팅하는 완전 관리형 PaaS 플랫폼입니다. 코드(또는 컨테이너)만 배포하면 OS 패치, 스케일링, 로드 밸런싱, TLS를 Azure가 처리합니다. 비용은 App Service Plan 계층 기준입니다.
@@ -1118,8 +1217,10 @@
 - 트러블슈팅 시 Network Watcher의 Effective Routes로 최종 경로 확인
 
 #### Backup Vault vs Recovery Services Vault
-- AZ-104 맥락에서는 Azure Backup/ASR 시나리오에서 Recovery Services Vault 이해가 핵심
-- 문제는 시나리오별 Vault 선택/지역 제약을 섞어 물어보는 경우가 많음
+- **RSV**: Azure VM, Azure Files, VM 위 SQL/HANA, MARS. **ASR**도 RSV 사용(자격 증명 모음은 **대상** 지역)
+- **Backup vault**: Disks, Blob, PostgreSQL, AKS
+- 지역 함정: 백업 RSV = VM과 **같은** 지역. ASR RSV = **다른**(복구) 지역
+- CRR은 RSV에서 **GRS + 스위치**. vault 드롭다운의 RA-GRS가 아님
 
 ---
 
