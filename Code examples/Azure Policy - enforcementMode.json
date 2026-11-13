@@ -1,0 +1,36 @@
+// 정책 할당의 enforcementMode. 효과 값 "disabled"와 다른 칸이다.
+// DoNotEnforce: Compliance에는 비준수가 남고, deny로 막거나 modify로 고치지 않는다.
+// 포털의 Policy enforcement Disabled가 이 값이다.
+{
+  "type": "Microsoft.Authorization/policyAssignments",
+  "name": "allowed-locations-audit-only",
+  "properties": {
+    "displayName": "허용 리전 점검만",
+    "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/allowed-locations",
+    "scope": "/subscriptions/00000000-0000-0000-0000-000000000000",
+    "enforcementMode": "DoNotEnforce",
+    "parameters": {
+      "effect": {
+        "value": "deny"
+      }
+    }
+  }
+}
+
+// 비교: 효과 값 "disabled"는 그 할당을 평가하지 않는다.
+// enforcementMode는 Default여도 효과가 disabled이면 비준수 기록도 남지 않는다.
+{
+  "type": "Microsoft.Authorization/policyAssignments",
+  "name": "allowed-locations-effect-off",
+  "properties": {
+    "displayName": "허용 리전 효과 끔",
+    "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/allowed-locations",
+    "scope": "/subscriptions/00000000-0000-0000-0000-000000000000",
+    "enforcementMode": "Default",
+    "parameters": {
+      "effect": {
+        "value": "disabled"
+      }
+    }
+  }
+}
