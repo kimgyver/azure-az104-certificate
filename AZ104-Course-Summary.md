@@ -2814,7 +2814,7 @@
 - **Private Endpoint DNS zone (blob)**: `privatelink.blob.core.windows.net` — created automatically when integrating blob Private Endpoint with a private DNS zone
 - **Azure Firewall FQDN tag**: Application rule + WindowsUpdate FQDN tag = minimal-maintenance Windows Update allow rule; Microsoft manages the FQDN list automatically
 - **Route table region requirement**: Route table and VNet subnet must be in the same region — changing region is not supported; delete and recreate in the correct region
-- **Private DNS VNet link autoregistration**: Auto-registration is a checkbox on each virtual network link. VNet1's link enabled = its VMs get A records automatically. VNet2's link disabled = that VNet can resolve names already in the zone but does not register its own VMs. Both still need a link
+- **Private DNS VNet link autoregistration**: Auto-registration is a checkbox on each virtual network link. VNet1's link enabled = its VMs get A records automatically. VNet2's link disabled = that VNet can resolve names already in the zone but does not register its own VMs. Both still need a link. Example for zone `app.contoso.internal`: VNet1 (app) registers `app1` and `app2` as VMs are created; VNet2 (database, management) only needs to resolve `app1.contoso.internal` and does not publish its own VM names in this zone
 - **ACI container group shared network namespace**: Containers in the same group communicate via localhost:port (loopback interface shared)
 - **ACI in VNet — internet access**: VNet-injected container groups require NAT gateway or UDR with 0.0.0.0/0 → Internet for outbound internet access
 - **Application Gateway health probe**: Custom probe must be associated with Backend HTTP settings — not listener, routing rule, or backend pool
@@ -2879,7 +2879,7 @@
 - **Private Endpoint DNS 영역(blob)**: `privatelink.blob.core.windows.net` — Blob Private Endpoint를 프라이빗 DNS 영역과 통합할 때 자동으로 생성
 - **Azure Firewall FQDN 태그**: 애플리케이션 규칙 + WindowsUpdate FQDN 태그 = 최소 유지 관리로 Windows Update 허용; Microsoft가 FQDN 목록 자동 관리
 - **경로 테이블 지역 요구 사항**: 경로 테이블과 VNet 서브넷은 동일 지역에 있어야 함 — 지역 변경 불가; 올바른 지역에서 삭제 후 재생성
-- **프라이빗 DNS VNet 링크 자동 등록**: 자동 등록은 VNet 링크의 체크박스다. VNet1 링크를 켜면 그 VM의 A 레코드가 자동으로 생긴다. VNet2 링크를 끄면 영역에 있는 이름은 찾지만 자기 VM은 등록하지 않는다. 조회하려면 둘 다 링크가 있어야 한다
+- **프라이빗 DNS VNet 링크 자동 등록**: 자동 등록은 VNet 링크의 체크박스다. VNet1 링크를 켜면 그 VM의 A 레코드가 자동으로 생긴다. VNet2 링크를 끄면 영역에 있는 이름은 찾지만 자기 VM은 등록하지 않는다. 조회하려면 둘 다 링크가 있어야 한다. 예: 영역 `app.contoso.internal`에서 VNet1(앱)은 VM이 생길 때마다 `app1`, `app2`를 자동으로 남긴다. VNet2(데이터베이스, 관리)는 `app1.contoso.internal`로 앱 서버를 찾기만 하고, 이쪽 VM 이름은 이 영역에 올리지 않는다
 - **ACI 컨테이너 그룹 공유 네트워크 네임스페이스**: 같은 그룹의 컨테이너는 localhost:포트를 통해 통신(루프백 인터페이스 공유)
 - **VNet의 ACI — 인터넷 액세스**: VNet 주입된 컨테이너 그룹은 아웃바운드 인터넷 액세스를 위해 NAT 게이트웨이 또는 0.0.0.0/0 → 인터넷 UDR이 필요
 - **Application Gateway 상태 프로브**: 사용자 지정 프로브는 백엔드 HTTP 설정에 연결해야 함 — 수신기, 라우팅 규칙, 백엔드 풀에 연결 불가
