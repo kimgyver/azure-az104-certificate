@@ -5,35 +5,45 @@
 
 ## Table of Contents / 목차
 
-1. [Microsoft Entra ID (Azure AD)](#1-microsoft-entra-id-azure-ad)
-2. [SSPR (Self-Service Password Reset)](#2-sspr-self-service-password-reset)
-3. [MFA (Multi-Factor Authentication)](#3-mfa-multi-factor-authentication)
-4. [RBAC (Role-Based Access Control)](#4-rbac-role-based-access-control)
-5. [Azure Governance](#5-azure-governance)
-6. [Azure Storage](#6-azure-storage)
-7. [Virtual Machines (VMs)](#7-virtual-machines-vms)
-8. [ARM Templates & Custom Script Extensions](#8-arm-templates--custom-script-extensions)
-9. [Virtual Networking](#9-virtual-networking)
-10. [Site-to-Site VPN](#10-site-to-site-vpn)
-11. [Azure DNS](#11-azure-dns)
-12. [Availability Sets & Zones](#12-availability-sets--availability-zones)
-13. [Azure Load Balancers](#13-azure-load-balancers)
-14. [Network Watcher](#14-network-watcher)
-15. [Azure Backup & Recovery Services](#15-azure-backup--recovery-services)
-16. [Azure Site Recovery (ASR)](#16-azure-site-recovery-asr)
-17. [Azure Monitor & Diagnostics](#17-azure-monitor--diagnostics)
-20. [2026 Gap Fill: Set6 Topics](#section-20--2026-gap-fill-set6-topics)
+본문 제목 순서입니다.
 
-21. [2026 Gap Fill: Expected Questions Set 7 (3-1 and 3-2)](#section-21--2026-gap-fill-expected-questions-3-1-and-3-2)
-22. [2026 Gap Fill: Expected Questions Set 8](#section-22--2026-gap-fill-expected-questions-set-8)
-23. [2026 Gap Fill: Expected Questions Set 9](#section-23--2026-gap-fill-expected-questions-set-9)
-24. [2026 Gap Fill: Expected Questions Set 10](#section-24--2026-gap-fill-expected-questions-set-10)
-25. [2026 Gap Fill: Expected Questions Set 11](#section-25--2026-gap-fill-expected-questions-set-11)
-26. [2026 Gap Fill: Expected Questions Set 12](#section-26--2026-gap-fill-expected-questions-set-12)
-27. [2026 Gap Fill: Expected Questions Set 14](#section-27--2026-gap-fill-expected-questions-set-14)
-28. [2026 Gap Fill: Expected Questions Set 13](#section-28--2026-gap-fill-expected-questions-set-13)
-29. [Official Microsoft Practice Assessment](AZ104-Official-Practice-Assessment.md) — 무료 공식 모의고사 위치 (AI Skills Navigator). 이 폴더 예상 문제와 다름
-30. [Gap set 31](AZ104-Practice-Questions-KO-Set31.md) — 2026-04-17 스킬 가이드 공백 40문항 (EN: [Set31 EN](AZ104-Practice-Questions-EN-Set31.md))
+- [1. Microsoft Entra ID (Azure AD)](#1-microsoft-entra-id-azure-ad)
+- [2. SSPR (Self-Service Password Reset)](#2-sspr-self-service-password-reset)
+- [3. MFA (Multi-Factor Authentication)](#3-mfa-multi-factor-authentication)
+- [4. RBAC (Role-Based Access Control)](#4-rbac-role-based-access-control)
+- [5. Azure Governance](#5-azure-governance)
+- [6. Azure Storage](#6-azure-storage)
+- [7. Virtual Machines (VMs)](#7-virtual-machines-vms)
+- [8. ARM Templates & Custom Script Extensions](#8-arm-templates--custom-script-extensions)
+- [9. Virtual Networking](#9-virtual-networking)
+- [10. Site-to-Site VPN](#10-site-to-site-vpn)
+- [11. Azure DNS](#11-azure-dns)
+- [12. Availability Sets & Availability Zones](#12-availability-sets--availability-zones)
+- [13. Azure Load Balancers](#13-azure-load-balancers)
+- [14. Network Watcher](#14-network-watcher)
+- [15. Azure Backup & Recovery Services](#15-azure-backup--recovery-services)
+- [16. Azure Site Recovery (ASR)](#16-azure-site-recovery-asr)
+- [17. Azure Monitor & Diagnostics](#17-azure-monitor--diagnostics)
+- [Quick Reference: AZ-104 Exam Domains](#quick-reference-az-104-exam-domains)
+- [Screenshot-Based Clarifications](#screenshot-based-clarifications)
+- [18. 2026 Scope Addendum (Gap Fill)](#18-2026-scope-addendum-gap-fill)
+- [Section 19 — 2026 Gap Fill: Set4 Topics](#section-19--2026-gap-fill-set4-topics)
+- [Section 20 — 2026 Gap Fill: Set5 Topics](#section-20--2026-gap-fill-set5-topics)
+- [Section 20 — 2026 Gap Fill: Set6 Topics](#section-20--2026-gap-fill-set6-topics)
+- [Section 21 — 2026 Gap Fill: Expected Questions 3-1 and 3-2](#section-21--2026-gap-fill-expected-questions-3-1-and-3-2)
+- [Section 22 — 2026 Gap Fill: Expected Questions Set 8](#section-22--2026-gap-fill-expected-questions-set-8)
+- [Section 23 — 2026 Gap Fill: Expected Questions Set 9](#section-23--2026-gap-fill-expected-questions-set-9)
+- [Section 24 — 2026 Gap Fill: Expected Questions Set 10](#section-24--2026-gap-fill-expected-questions-set-10)
+- [Section 25 — 2026 Gap Fill: Expected Questions Set 11](#section-25--2026-gap-fill-expected-questions-set-11)
+- [Section 26 — 2026 Gap Fill: Expected Questions Set 12](#section-26--2026-gap-fill-expected-questions-set-12)
+- [Section 27 — 2026 Gap Fill: Expected Questions Set 14](#section-27--2026-gap-fill-expected-questions-set-14)
+- [Section 28 — 2026 Gap Fill: Expected Questions Set 13](#section-28--2026-gap-fill-expected-questions-set-13)
+- [Section 27 — 2026 Gap Fill: PIM, Key Vault RBAC, App Insights, Service Health](#section-27--2026-gap-fill-pim-key-vault-rbac-app-insights-service-health)
+
+다른 파일:
+
+- [Official Microsoft Practice Assessment](AZ104-Official-Practice-Assessment.md) — 무료 공식 모의고사 위치 (AI Skills Navigator). 이 폴더 예상 문제와 다름
+- [Gap set 31](AZ104-Practice-Questions-KO-Set31.md) — 2026-04-17 스킬 가이드 공백 40문항 (EN: [Set31 EN](AZ104-Practice-Questions-EN-Set31.md))
 
 ---
 
