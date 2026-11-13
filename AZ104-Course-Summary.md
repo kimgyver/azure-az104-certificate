@@ -1759,10 +1759,11 @@
 - `copy`: 한 필드에서 다른 필드로 값 복사
 - 시험 팁: "기존 값 보존하며 상속" → `add`; "항상 적용" → `addOrReplace`
 
-#### Azure Policy — 적용 모드 (Enforcement Mode)
-- `Disabled` 모드: 준수 평가 유지하되 **차단 동작 없음** (테스트용)
-- `Enabled` (기본값): 평가 + 차단 모두 적용
-- 시험 팁: "차단 없이 정책 테스트" → 적용 모드 **Disabled**
+#### Azure Policy — 적용 모드 (enforcementMode)
+- 할당의 `enforcementMode`다. 효과 값 `"disabled"`와 다른 칸이다
+- `DoNotEnforce`(포털의 Policy enforcement Disabled): Compliance에 준수·비준수는 남기고, deny로 막거나 modify로 고치지는 않음
+- `Default`(포털 Enabled): 평가하고 효과도 실행
+- 시험 팁: "차단 없이 정책 테스트" → `enforcementMode: DoNotEnforce`. 효과 `"disabled"`는 평가 자체를 하지 않음
 
 #### Bicep 루프 + 조건 구문
 - `[for ... : if(...) { }]` 순서 — **`for` 먼저, `if` 다음**
@@ -1951,9 +1952,10 @@
 - Exam tip: "Inherit tag but never overwrite existing" → `add`; "always apply value" → `addOrReplace`
 
 #### Azure Policy — Enforcement Mode
-- `Disabled` mode: compliance evaluation runs but **no blocking behavior** (testing mode)
-- `Enabled` (default): evaluation + blocking both applied
-- Exam tip: "Test policy without blocking" → set enforcement mode to **Disabled**
+- This is the assignment field `enforcementMode`, not the effect value `"disabled"`
+- `DoNotEnforce` (portal: Policy enforcement Disabled): compliance is still recorded, but deny does not block and modify does not change resources
+- `Default` (portal: Enabled): evaluate and apply the effect
+- Exam tip: "Test policy without blocking" → `enforcementMode: DoNotEnforce`. Effect `"disabled"` skips evaluation entirely
 
 #### Bicep Loop + Condition Syntax
 - `[for ... : if(...) { }]` — **`for` must come before `if`**
@@ -2854,12 +2856,12 @@
 - **Policy modify effect**: Auto-adds/updates tags at creation time and supports remediation tasks for existing non-compliant resources — `append` does not support remediation
 - **Policy deny effect**: Blocks resource creation/update requests that fail policy conditions — `audit` only logs non-compliance
 - **Policy modify operation — `add` vs `addOrReplace`**: `add` sets tag only if absent (preserves existing values); `addOrReplace` overwrites existing tag values
-- **Policy enforcement mode Disabled**: Evaluates and reports compliance but does NOT apply the policy effect to resource operations — for impact assessment before enforcement
+- **Policy enforcementMode DoNotEnforce**: Assignment field, not effect `"disabled"`. Compliance is still recorded, but the effect is not applied (no deny, no modify). Effect `"disabled"` skips evaluation entirely
 
 #### ARM Templates and Bicep
 - **Bicep for + if order**: Loop + condition must be `[for ... : if(condition) { }]` — `for` before `if`; reverse order is invalid syntax
 - **Bicep module output reference**: `moduleName.outputs.outputName` — module symbolic name followed by `.outputs.`
-- **Policy enforcement Disabled mode**: Compliance data still collected; resource operations not blocked — distinct from removing or disabling the assignment
+- **Policy enforcementMode DoNotEnforce**: Assignment stays in place and compliance is still recorded, but resource operations are not blocked. Not the effect value `"disabled"` (that skips evaluation). Deleting the assignment removes the evaluation entirely
 
 #### Site Recovery, Monitoring, and AKS
 - **Action Group email rate limit**: 100 emails/hour per recipient address — intermittent notification gaps during alert storms indicate rate limiting (not misconfiguration)
@@ -2919,12 +2921,12 @@
 - **Policy modify 효과**: 생성 시 태그 자동 추가/업데이트 + 기존 비준수 리소스에 대한 수정 작업 지원 — `append`는 수정 미지원
 - **Policy deny 효과**: 정책 조건을 충족하지 않는 리소스 생성/업데이트 요청 차단 — `audit`은 비준수만 기록
 - **Policy modify 작업 — `add` vs `addOrReplace`**: `add`는 태그가 없을 때만 설정(기존 값 보존); `addOrReplace`는 기존 태그 값 덮어쓰기
-- **Policy 적용 모드 Disabled**: 규정 준수 데이터는 수집되지만 리소스 작업에 정책 효과 미적용 — 적용 전 영향 평가용
+- **Policy enforcementMode DoNotEnforce**: 할당의 적용 모드다. 효과 값 `"disabled"`가 아니다. Compliance에 준수·비준수는 남고, deny로 막거나 modify로 고치지는 않는다. 효과 `"disabled"`는 평가 자체를 하지 않는다
 
 #### ARM 템플릿 및 Bicep
 - **Bicep for + if 순서**: 루프 + 조건은 반드시 `[for ... : if(condition) { }]` — `for` 다음에 `if`; 역순은 구문 오류
 - **Bicep 모듈 출력 참조**: `moduleName.outputs.outputName` — 모듈 기호 이름 다음에 `.outputs.`
-- **Policy 적용 Disabled 모드**: 규정 준수 데이터는 계속 수집; 리소스 작업은 차단되지 않음 — 할당 제거 또는 비활성화와 구별
+- **Policy enforcementMode DoNotEnforce**: 할당은 그대로 두고 Compliance 기록은 남긴다. 리소스 작업은 막지 않는다. 효과 값 `"disabled"`가 아니다. 그 값은 평가 자체를 하지 않는다. 할당을 삭제하면 평가와 기록도 사라진다
 
 #### Site Recovery, 모니터링 및 AKS
 - **Action Group 이메일 속도 제한**: 수신자 주소당 시간당 100개 이메일 — 경고 폭발 중 간헐적 알림 부재는 속도 제한(잘못된 구성 아님) 나타냄
