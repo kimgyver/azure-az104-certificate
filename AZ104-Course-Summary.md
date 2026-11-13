@@ -2700,7 +2700,7 @@
 - **Custom Script Extension log path (Windows)**: `C:\WindowsAzure\Logs\Plugins\Microsoft.Compute.CustomScriptExtension\`; downloaded scripts under `C:\Packages\Plugins\...`
 - **Application Gateway cookie-based affinity**: sets ARRAffinity cookie for session persistence; routes subsequent requests to same backend instance; distinct from Azure LB source IP affinity (L4)
 - **App Service Basic (B1) minimum**: minimum tier for custom domain + SSL certificate binding; Free and Shared tiers do not support these features
-- **Azure SQL PITR**: automatic backup + point-in-time restore to any point within retention; minimum administrative effort for accidental data deletion
+- **Azure SQL PITR**: automatic backup + point-in-time restore to any point within retention; minimum administrative effort for accidental data deletion. Default retention 7 days; configurable 1–35 days (Basic is capped at 1–7 days). Restores to a new database. Long-term retention (LTR) is separate and can keep full backups for up to 10 years
 - **Metric alert AND logic**: requires both conditions simultaneously true at same time slice; use Max/Min aggregation over window to capture "met at any point in period" behavior
 
 #### ARM Templates and Bicep
@@ -2725,7 +2725,7 @@
 
 #### Backup, Monitoring, and Operations
 - **Crash-consistent vs App-consistent**: crash-consistent = disk state at power-loss moment, no quiescing, fast; app-consistent = VSS/scripts to flush transactions and quiesce, safe for DB recovery
-- **VM Insights storage**: all performance and dependency data stored in Log Analytics workspace (`InsightsMetrics`, `VMConnection` tables)
+- **VM Insights storage**: data is stored in a Log Analytics workspace. Performance counters go to `InsightsMetrics`. With the Dependency agent, connection data goes to `VMConnection` (also `VMProcess`, `VMBoundPort`, `VMComputer`). Performance counters collected outside VM Insights go to `Perf`
 - **Azure Resource Graph in Workbooks**: cross-subscription resource inventory queries; resource properties, tags, locations, ARM metadata
 - **App Service Key Vault reference cache**: caches secret values up to 24 hours; restart forces immediate refresh; designed to reduce Key Vault API calls and avoid throttling
 - **Azure Firewall TI default + audit finding**: default is "Alert only"; logs showing alerts without blocks may reflect the pre-change period when default was still active
@@ -2762,7 +2762,7 @@
 - **Custom Script Extension 로그 경로(Windows)**: `C:\WindowsAzure\Logs\Plugins\Microsoft.Compute.CustomScriptExtension\`; 다운로드된 스크립트는 `C:\Packages\Plugins\...` 아래
 - **Application Gateway 쿠키 기반 선호도**: ARRAffinity 쿠키로 세션 지속성; 이후 요청을 동일한 백엔드 인스턴스로 라우팅; Azure LB 원본 IP 선호도(L4)와 구별
 - **App Service Basic(B1) 최소**: 사용자 지정 도메인 + SSL 인증서 바인딩을 위한 최소 계층; Free 및 Shared 계층 미지원
-- **Azure SQL PITR**: 자동 백업 + 보존 기간 내 임의 시점 복원; 실수로 데이터 삭제 시 최소 관리 노력으로 복구
+- **Azure SQL PITR**: 자동 백업 + 보존 기간 내 임의 시점 복원; 실수로 데이터 삭제 시 최소 관리 노력으로 복구. 기본 보존 7일, 1–35일로 설정 가능(Basic은 1–7일이 상한). 복원 결과는 새 데이터베이스. 장기 보존(LTR)은 별도이며 전체 백업을 최대 10년까지 보관
 - **메트릭 경고 AND 로직**: 두 조건이 동일 시간 슬라이스에서 동시에 참이어야 함; "기간 내 한 번이라도 충족" 동작을 위해 창에 대한 Max/Min 집계 사용
 
 #### ARM 템플릿 및 Bicep
@@ -2787,7 +2787,7 @@
 
 #### 백업, 모니터링 및 운영
 - **충돌 일관성 vs 애플리케이션 일관성**: 충돌 일관성 = 전원 차단 순간의 디스크 상태, 정지 없음, 빠름; 애플리케이션 일관성 = VSS/스크립트로 트랜잭션 플러시 및 정지, DB 복구에 안전
-- **VM Insights 스토리지**: 모든 성능 및 종속성 데이터가 Log Analytics 작업 영역에 저장(`InsightsMetrics`, `VMConnection` 테이블)
+- **VM Insights 스토리지**: 데이터는 Log Analytics 작업 영역에 저장. 성능 카운터는 `InsightsMetrics`. Dependency agent를 켜면 연결 데이터는 `VMConnection`(추가로 `VMProcess`, `VMBoundPort`, `VMComputer`). VM Insights 밖에서 수집한 성능 카운터는 `Perf`
 - **Workbook의 Azure Resource Graph**: 여러 구독 리소스 인벤토리 쿼리; 리소스 속성, 태그, 위치, ARM 메타데이터
 - **App Service Key Vault 참조 캐시**: 비밀 값 최대 24시간 캐시; 재시작 시 즉시 새로 고침; Key Vault API 호출 감소 및 제한 방지 목적
 - **Azure Firewall TI 기본값 + 감사 발견**: 기본값은 "경고 전용"; 차단 없는 경고를 보여주는 로그는 기본 설정이 여전히 활성화되어 있던 변경 이전 기간을 반영할 수 있음
@@ -2937,7 +2937,7 @@
 - **Recovery Services vault region**: Must be in the same region as the protected resource; backup snapshots are region-bound
 - **AKS Spot Deallocate eviction**: Evicted Spot VMs in Stopped (deallocated) state continue consuming vCPU quota — prevents autoscaler from provisioning new nodes; use Delete policy to release quota immediately
 - **Archive blob rehydration**: For immediate access, use High Priority + Hot tier (< 1 hour for objects under 10 GB); Standard Priority = up to 15 hours
-- **Azure SQL PITR retention**: Max 35 days for all DTU-based tiers (Basic, Standard, Premium); long-term retention (LTR) is a separate feature
+- **Azure SQL PITR retention**: Default 7 days. Configurable 1–35 days, except Basic which is capped at 1–7 days. Long-term retention (LTR) is a separate feature and can keep full backups for up to 10 years
 - **Join-AzStorageAccount AD DS object**: Creates a computer account in AD DS by default to represent the storage account; enables Kerberos SMB auth
 - **VM power states**: Stopped = OS shutdown, compute host still reserved, billing continues; Stopped (deallocated) = compute host released, billing stops, disk charges continue
 
@@ -3002,7 +3002,7 @@
 - **Recovery Services vault 지역**: 보호 대상 리소스와 동일한 지역에 있어야 함; 백업 스냅샷은 지역에 종속
 - **AKS Spot Deallocate 제거**: 제거된 Spot VM이 Stopped (deallocated) 상태로 vCPU 할당량을 계속 점유 — 자동 크기 조정기의 새 노드 프로비저닝 방해; Delete 정책 사용 시 즉시 할당량 반환
 - **Archive Blob 리하이드레이션**: 즉시 접근에는 높은 우선순위 + Hot 계층 사용(10GB 미만 객체 1시간 이내); 표준 우선순위는 최대 15시간 소요
-- **Azure SQL PITR 보존**: 모든 DTU 기반 계층(Basic, Standard, Premium)에서 최대 35일; LTR(장기 보존)은 별도 기능
+- **Azure SQL PITR 보존**: 기본 7일. 1–35일로 설정 가능. Basic만 1–7일이 상한. LTR(장기 보존)은 별도 기능이며 전체 백업을 최대 10년까지 보관
 - **Join-AzStorageAccount AD DS 개체**: 기본적으로 AD DS에 컴퓨터 계정 생성으로 스토리지 계정을 표현; Kerberos SMB 인증 활성화
 - **VM 전원 상태**: Stopped = OS 종료, 컴퓨팅 호스트 예약 유지, 과금 계속; Stopped (deallocated) = 컴퓨팅 호스트 해제, 컴퓨팅 요금 중단, 디스크 요금 계속
 
