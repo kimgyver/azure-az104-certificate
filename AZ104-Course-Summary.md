@@ -2421,16 +2421,20 @@
 - **App Service Managed Certificate**: no wildcard support; auto-renewed by platform; no Key Vault required
 - **App Service SNI SSL**: allows multiple certificates on a single IP; IP-based SSL requires one dedicated IP per certificate
 - **ACR SKU Upgrade for Geo-replication**: `az acr update --sku Premium` — geo-replication is Premium-only
-- **ACI Subnet Delegation**: subnet must be delegated to `Microsoft.ContainerInstance/containerGroups` before deploying a container group into a VNet
+- **ACI Subnet Delegation**: to place an ACI container group **inside a VNet subnet**, first delegate that subnet to `Microsoft.ContainerInstance/containerGroups` (reserves the subnet for ACI networking). Skip this if ACI is not VNet-injected (public-only). Without delegation, VNet ACI deploy fails.
 
-#### Azure Site Recovery and Backup
+#### Azure Site Recovery (ASR)
 - **ASR Commit Failover**: permanently deletes all recovery points for that VM; cannot revert; reprotect is required to resume replication
 - **ASR Reprotection Prerequisite**: VM status must be `Failover committed` before the Reprotect option becomes available
-- **Azure Backup File Share**: maximum 6 scheduled snapshots per day (minimum 4-hour interval between each)
+
+#### Azure Backup (separate from ASR)
+- **Azure Files scheduled snapshots**: maximum 6 per day (minimum 4-hour interval) — Azure Backup policy limit, not an ASR setting
 
 #### Azure Monitor, Workbooks, and Service Health
 - **Azure Monitor Alert Severity**: 0 = Critical (highest severity); scale is 0–4 (lower number = more severe)
-- **Azure Workbooks Data Source**: use **Azure Resource Graph** for resource inventory/metadata; use **Metrics** for numerical performance time-series
+- **Azure Workbooks Data Source**: Workbooks are dashboards; pick the data source by question type
+  - **Azure Resource Graph** → inventory/metadata (“how many / which resources?”): e.g. count of Linux VMs, resources by region/SKU/tag
+  - **Metrics** → numerical performance over time (“how did a value change?”): e.g. CPU %, disk IOPS, HTTP latency charts (X=time, Y=number)
 - **Service Health Health History**: inactive (resolved) events are retained for 90 days
 - **VM Disk Host Caching**: transaction log disk → `None`; data files disk → `ReadOnly`
 
@@ -2491,16 +2495,20 @@
 - **App Service 관리 인증서**: 와일드카드 미지원; 플랫폼이 자동 갱신; Key Vault 불필요
 - **App Service SNI SSL**: 단일 IP에 여러 인증서 허용; IP 기반 SSL은 인증서당 전용 IP 필요
 - **ACR 지역 복제 SKU**: `az acr update --sku Premium`; 지역 복제는 Premium 전용
-- **ACI 서브넷 위임**: 컨테이너 그룹 배포 전 `Microsoft.ContainerInstance/containerGroups`에 위임 필요
+- **ACI 서브넷 위임**: ACI 컨테이너 그룹을 **VNet 서브넷 안에** 두려면, 먼저 그 서브넷을 `Microsoft.ContainerInstance/containerGroups`에 위임 (ACI 네트워킹 전용으로 예약). VNet에 안 넣고 공용만 쓰면 위임 불필요. 위임 없이 VNet ACI 배포 시 실패
 
-#### Azure Site Recovery 및 Backup
+#### Azure Site Recovery (ASR)
 - **ASR 장애 조치 커밋**: VM의 모든 복구 지점 영구 삭제; 되돌릴 수 없음; 재보호 필요
 - **ASR 재보호 선행 조건**: VM 상태가 `Failover committed`여야 재보호 옵션 활성화
-- **Azure Backup 파일 공유**: 하루 최대 6회 예약 스냅샷(최소 4시간 간격)
+
+#### Azure Backup (ASR과 별개)
+- **Azure Files 예약 스냅샷**: 하루 최대 6회(최소 4시간 간격) — Azure Backup 정책 한도이며 ASR 설정이 아님
 
 #### Azure Monitor, Workbook, Service Health
 - **Azure Monitor 경고 심각도**: 0 = Critical(가장 높은 심각도); 범위 0–4(낮은 숫자 = 더 심각)
-- **Azure Workbook 데이터 소스**: 리소스 인벤토리/메타데이터 → **Azure Resource Graph**; 수치 성능 시계열 → **Metrics**
+- **Azure Workbook 데이터 소스**: Workbook은 대시보드; 알고 싶은 것에 따라 데이터 소스 선택
+  - **Azure Resource Graph** → 인벤토리/메타데이터(“뭐가 몇 개/어떤 리소스?”): 예) Linux VM 대수, 리전·SKU·태그별 리소스 목록
+  - **Metrics** → 시간에 따른 수치 성능(“값이 어떻게 변했나?”): 예) CPU %, 디스크 IOPS, HTTP 지연 그래프 (X=시간, Y=숫자)
 - **Service Health 기록 보존**: 비활성(해결된) 이벤트 90일 보관
 - **VM 디스크 호스트 캐싱**: 트랜잭션 로그 디스크 → `없음`; 데이터 파일 디스크 → `읽기 전용`
 
