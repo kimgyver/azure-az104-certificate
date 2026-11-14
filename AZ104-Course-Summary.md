@@ -29,16 +29,16 @@
 - [18. 2026 Scope Addendum (Gap Fill)](#18-2026-scope-addendum-gap-fill)
 - [Section 19 — 2026 Gap Fill: Set4 Topics](#section-19--2026-gap-fill-set4-topics)
 - [Section 20 — 2026 Gap Fill: Set5 Topics](#section-20--2026-gap-fill-set5-topics)
-- [Section 20 — 2026 Gap Fill: Set6 Topics](#section-20--2026-gap-fill-set6-topics)
-- [Section 21 — 2026 Gap Fill: Expected Questions 3-1 and 3-2](#section-21--2026-gap-fill-expected-questions-3-1-and-3-2)
-- [Section 22 — 2026 Gap Fill: Expected Questions Set 8](#section-22--2026-gap-fill-expected-questions-set-8)
-- [Section 23 — 2026 Gap Fill: Expected Questions Set 9](#section-23--2026-gap-fill-expected-questions-set-9)
-- [Section 24 — 2026 Gap Fill: Expected Questions Set 10](#section-24--2026-gap-fill-expected-questions-set-10)
-- [Section 25 — 2026 Gap Fill: Expected Questions Set 11](#section-25--2026-gap-fill-expected-questions-set-11)
-- [Section 26 — 2026 Gap Fill: Expected Questions Set 12](#section-26--2026-gap-fill-expected-questions-set-12)
-- [Section 27 — 2026 Gap Fill: Expected Questions Set 14](#section-27--2026-gap-fill-expected-questions-set-14)
-- [Section 28 — 2026 Gap Fill: Expected Questions Set 13](#section-28--2026-gap-fill-expected-questions-set-13)
-- [Section 27 — 2026 Gap Fill: PIM, Key Vault RBAC, App Insights, Service Health](#section-27--2026-gap-fill-pim-key-vault-rbac-app-insights-service-health)
+- [Section 21 — 2026 Gap Fill: Set6 Topics](#section-21--2026-gap-fill-set6-topics)
+- [Section 22 — 2026 Gap Fill: Expected Questions 3-1 and 3-2](#section-22--2026-gap-fill-expected-questions-3-1-and-3-2)
+- [Section 23 — 2026 Gap Fill: Expected Questions Set 8](#section-23--2026-gap-fill-expected-questions-set-8)
+- [Section 24 — 2026 Gap Fill: Expected Questions Set 9](#section-24--2026-gap-fill-expected-questions-set-9)
+- [Section 25 — 2026 Gap Fill: Expected Questions Set 10](#section-25--2026-gap-fill-expected-questions-set-10)
+- [Section 26 — 2026 Gap Fill: Expected Questions Set 11](#section-26--2026-gap-fill-expected-questions-set-11)
+- [Section 27 — 2026 Gap Fill: Expected Questions Set 12](#section-27--2026-gap-fill-expected-questions-set-12)
+- [Section 28 — 2026 Gap Fill: Expected Questions Set 14](#section-28--2026-gap-fill-expected-questions-set-14)
+- [Section 29 — 2026 Gap Fill: Expected Questions Set 13](#section-29--2026-gap-fill-expected-questions-set-13)
+- [Section 30 — 2026 Gap Fill: PIM, Key Vault RBAC, App Insights, Service Health](#section-30--2026-gap-fill-pim-key-vault-rbac-app-insights-service-health)
 
 다른 파일:
 
@@ -1588,7 +1588,7 @@
 
 ---
 
-## Section 20 — 2026 Gap Fill: Set6 Topics
+## Section 21 — 2026 Gap Fill: Set6 Topics
 
 ### English
 
@@ -2088,7 +2088,7 @@
 
 ---
 
-## Section 21 — 2026 Gap Fill: Expected Questions 3-1 and 3-2
+## Section 22 — 2026 Gap Fill: Expected Questions 3-1 and 3-2
 
 ### English
 
@@ -2230,7 +2230,7 @@
 - VM Insights 기본 포털 온보딩은 **guest performance metrics only** 수집
 - KQL 시간 기반 선형 차트 시각화는 **`render timechart`** 사용
 
-## Section 22 — 2026 Gap Fill: Expected Questions Set 8
+## Section 23 — 2026 Gap Fill: Expected Questions Set 8
 
 ### English
 
@@ -2392,7 +2392,7 @@
 
 ---
 
-## Section 23 — 2026 Gap Fill: Expected Questions Set 9
+## Section 24 — 2026 Gap Fill: Expected Questions Set 9
 
 ### English
 
@@ -2541,7 +2541,7 @@
 - **Azure Firewall 규칙 처리 순서**: DNAT 규칙 → 네트워크 규칙 → 애플리케이션 규칙 (유형 우선순위가 동일 유형 내 숫자 우선순위를 재정의)
 
 
-## Section 24 — 2026 Gap Fill: Expected Questions Set 10
+## Section 25 — 2026 Gap Fill: Expected Questions Set 10
 
 ### English
 
@@ -2680,7 +2680,7 @@
 - **RBAC 구독 한도**: 구독당 최대 **4,000개** 역할 할당; 그룹 할당으로 할당 할당량 절약
 
 
-## Section 25 — 2026 Gap Fill: Expected Questions Set 11
+## Section 26 — 2026 Gap Fill: Expected Questions Set 11
 
 ### English
 
@@ -2805,7 +2805,7 @@
 - **Azure Firewall TI 기본값 + 감사 발견**: 기본값은 "경고 전용"; 차단 없는 경고를 보여주는 로그는 기본 설정이 여전히 활성화되어 있던 변경 이전 기간을 반영할 수 있음
 
 
-## Section 26 — 2026 Gap Fill: Expected Questions Set 12
+## Section 27 — 2026 Gap Fill: Expected Questions Set 12
 
 ### English
 
@@ -2939,7 +2939,7 @@
 
 ---
 
-## Section 27 — 2026 Gap Fill: Expected Questions Set 14
+## Section 28 — 2026 Gap Fill: Expected Questions Set 14
 
 ### English
 
@@ -3072,7 +3072,7 @@
 
 ---
 
-## Section 28 — 2026 Gap Fill: Expected Questions Set 13
+## Section 29 — 2026 Gap Fill: Expected Questions Set 13
 
 ### English
 
@@ -3222,7 +3222,7 @@
 
 ---
 
-## Section 27 — 2026 Gap Fill: PIM, Key Vault RBAC, App Insights, Service Health
+## Section 30 — 2026 Gap Fill: PIM, Key Vault RBAC, App Insights, Service Health
 
 ### 한국어
 
@@ -3234,39 +3234,48 @@
 - 라이선스: Microsoft Entra ID P2 또는 Entra ID Governance.
 
 #### Key Vault 권한 모델 (RBAC vs Access Policy)
-- 세분화된 권한(개별 비밀/키/인증서) + PIM 운영 요구 시 정답은 Azure RBAC 모델.
-- Access Policy 모델은 레거시 방식이며 PIM 기반 운영 요구와 맞지 않음.
-- 시험 패턴: "비밀 단위 권한 + PIM" -> Azure RBAC.
+- Key Vault마다 권한 모델은 둘 중 하나다. Access configuration에서 고른다.
+- **Azure RBAC**: Azure 역할 할당. vault뿐 아니라 비밀·키·인증서 하나에도 역할을 줄 수 있다. PIM(Eligible/JIT)과 맞다.
+- **Access Policy**: Key Vault 안의 예전 권한 목록. 보통 vault 전체(그 안의 비밀을 대략 다)에 권한이 간다. 비밀 하나마다 쪼개기 어렵고 PIM과 잘 안 맞다.
+- 시험 패턴: "비밀 단위 권한 + PIM" → Azure RBAC.
 
 #### Key Vault 오브젝트 단위 Scope 예시
-- Secret: /.../vaults/{kv}/secrets/{secret}
-- Key: /.../vaults/{kv}/keys/{key}
-- Certificate: /.../vaults/{kv}/certificates/{cert}
-- 핵심: az role assignment로 해당 scope에 역할을 주면 오브젝트 단위 최소 권한 가능.
+- 역할은 항상 어떤 범위(scope)에 붙는다. scope가 vault면 vault 전체, 비밀 경로면 그 비밀만이다.
+- Secret: `/subscriptions/.../resourceGroups/.../providers/Microsoft.KeyVault/vaults/{kv}/secrets/{secret}`
+- Key: `/subscriptions/.../resourceGroups/.../providers/Microsoft.KeyVault/vaults/{kv}/keys/{key}`
+- Certificate: `/subscriptions/.../resourceGroups/.../providers/Microsoft.KeyVault/vaults/{kv}/certificates/{cert}`
+- 예: `DbPassword`만 읽게 하려면
+  ```bash
+  az role assignment create \
+    --role "Key Vault Secrets User" \
+    --assignee user@contoso.com \
+    --scope "/subscriptions/.../resourceGroups/rg1/providers/Microsoft.KeyVault/vaults/myvault/secrets/DbPassword"
+  ```
+- 이 사용자는 `DbPassword`만 읽고, 같은 vault의 `ApiKey`는 못 읽는다. vault 전체에 역할을 주면 둘 다 읽을 수 있다.
 
-#### Application Insights (APM) 핵심
-- 성능 모니터링(응답 시간, 의존성 호출), 예외 로깅, 사용자 분석, Live Metrics, Application Map.
-- 마이크로서비스 상호 연결의 본체는 분산 추적(Distributed Tracing): operation_Id + W3C(traceparent/tracestate).
-- Application Map은 시각화 계층이며, 실제 연결 데이터는 분산 추적에서 생성.
+#### Application Insights (APM)
+- 앱이 느린지, 어디를 호출하는지, 예외가 났는지, 사용자가 어디를 쓰는지 보는 도구다. Live Metrics는 거의 실시간 화면, Application Map은 서비스 연결 그림이다.
+- 여러 서비스에 걸친 한 요청을 이어 보는 것이 **분산 추적**이다. 같은 요청은 `operation_Id`로 묶이고, 서비스 사이에 `traceparent` 같은 W3C 헤더로 전달된다.
+- Application Map은 그 추적 데이터를 그림으로 보여 줄 뿐이다. 연결 정보는 Map이 만들고, 추적 로그에서 나온다.
 
-#### Application Insights 샘플링 정리
-- 요구가 "예측 가능한 50% 절감 + 상호연결 로그 보존"이면 SDK 고정 비율 샘플링(Fixed-rate) 패턴이 정답.
-- Adaptive Sampling은 트래픽 기반으로 비율이 동적으로 변해 자동 제어에는 유리하지만 고정 목표치에는 덜 결정적.
-- Ingestion Sampling은 수집 후 드롭이라 E2E 추적 보존 관점에서 상대적으로 불리할 수 있음.
+#### Application Insights 샘플링
+- 로그를 다 저장하면 비용이 커서, 일부만 남기는 것이 샘플링이다.
+- **"항상 약 50%만 남기고, 한 요청의 연결 로그는 같이 남긴다"** → SDK **Fixed-rate(고정 비율)** 샘플링.
+- **Adaptive**: 트래픽이 많으면 비율을 자동으로 줄인다. 목표 50%처럼 고정값을 맞추기엔 덜 맞다.
+- **Ingestion Sampling**: 이미 보낸 뒤 수집 단계에서 버린다. 서비스 A는 남고 B는 버려져 한 요청 추적이 끊길 수 있다.
 
 #### Service Health 사전 알림
-- 서비스 중단/계획된 유지 관리 사전 알림 서비스: Azure Service Health.
-- 구성: Service Health Alert Rule + Action Group(이메일/SMS/Webhook).
+- **Azure Service Health**는 내 구독에 영향을 주는 Azure 장애·유지 관리를 알려 주는 서비스다. 내 앱 로그(Application Insights)와 다르다.
+- 알림: Service Health 경고 규칙 + Action Group(이메일/SMS/웹후크).
 
-#### Traffic Manager 우선순위 라우팅 동작
-- Priority 모드: 가장 높은 우선순위의 정상 엔드포인트로 DNS 응답.
-- Priority 1 장애 시 Priority 2로 자동 장애 조치.
-- DNS 기반 특성상 사용자 전환 속도는 TTL/캐시 만료의 영향.
-- Priority 1 복구 시 주 엔드포인트로 failback 가능.
+#### Traffic Manager Priority
+- Traffic Manager는 DNS로 “어느 지역 주소를 알려 줄지” 정한다. 패킷이 그 장비를 지나가지 않는다.
+- Priority: 숫자가 작을수록 우선. Priority 1이 정상이면 그걸 알려 주고, 죽으면 Priority 2로 넘긴다. 1이 살아나면 다시 1로 돌아온다(failback).
+- DNS라서 전환은 TTL·캐시가 끝날 때까지 늦을 수 있다.
 
-#### 단일 전역 HTTP/S 서비스로 WAF + 가속 + 에지 SSL + 분할 라우팅
-- 정답: Azure Front Door.
-- 근거: 글로벌 Anycast 에지 가속 + WAF + 에지 TLS 종료 + 가중치/규칙 기반 분할 라우팅(A/B, 카나리).
+#### Front Door가 답인 문제
+- 한 서비스로 **전 세계 HTTP/S**, **WAF**, **에지에서 SSL 종료**, **가속**, **일부 트래픽만 새 버전으로(A/B·카나리)** 가 필요하면 **Azure Front Door**.
+- Traffic Manager는 DNS만, Application Gateway는 지역 L7, Front Door는 글로벌 에지 L7이다.
 
 #### KQL 예시: 지난 24시간 컴퓨터별 Error 집계
 ```kusto
