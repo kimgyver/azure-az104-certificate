@@ -2975,7 +2975,7 @@
 
 #### Networking
 - **Load Balancer health probe IP**: Health probes always originate from 168.63.129.16 (Azure platform IP); must be allowed in backend VM NSGs on the probe port
-- **NVA IP forwarding**: A VM acting as an NVA (network virtual appliance) requires IP forwarding enabled on its NIC in Azure; disabled by default — packets are dropped without it
+- **NVA IP forwarding**: An NVA (Network Virtual Appliance) is a VM used as a firewall or router. Its NIC must have IP forwarding enabled in Azure (NIC → IP configurations → IP forwarding). The setting is off by default, so Azure drops packets whose destination is not the NIC's own IP. The guest OS must also forward (Linux `net.ipv4.ip_forward`, Windows routing)
 - **Azure Private Link**: Assigns a private IP from your VNet to an Azure PaaS service via Private Endpoint; traffic stays on the Azure backbone with no internet exposure
 - **Azure PaaS public by default**: All Azure PaaS services (Storage, SQL, etc.) have public endpoints open by default; firewalls, service endpoints, or Private Endpoints must be configured to restrict access
 - **Storage firewall service endpoint**: Adding a VNet to the storage account firewall requires the Microsoft.Storage service endpoint to be enabled on that subnet
@@ -2985,9 +2985,9 @@
 
 #### Storage, SAS, and App Service
 - **App Service Swap with preview**: Multi-phase swap applies production settings to staging first for validation; can commit or cancel before traffic switches; standard swap has no validation phase
-- **App Service root domain verification**: Uses a TXT record named `asuid` with the Azure-provided verification ID; root domains (apex) cannot use CNAME records
+- **App Service root domain verification**: A record maps a name to an IPv4 address. CNAME maps a name to another name (`www` → `app.azurewebsites.net`) and cannot be used on the root domain. TXT does not route traffic; it proves ownership. For `www`, a CNAME is enough. For the root (`contoso.com`), add an A record to the App Service IP shown on Custom domains, plus a TXT record named `asuid` (App Service unique ID) whose value is the Custom Domain Verification ID
 - **Service SAS stored access policies**: Only Service SAS supports stored access policies for revocation; Account SAS and User delegation SAS cannot be revoked before expiry
-- **Azure Files Entra Kerberos**: Enables SMB access to Azure Files from Entra-joined devices without any domain controller; cloud-issued Kerberos tickets; cloud-only identity environment
+- **Azure Files Entra Kerberos**: Storage account SMB identity source. The signed-in user on an Entra-joined device gets a cloud-issued Kerberos ticket and opens the share; the device itself is not the identity. No domain controller. Not used for a computer account, a storage account key, or a device that is not Entra-joined
 - **Azure File Sync agent components**: FileSyncSvc.exe (background sync service) + StorageSync.sys (file system filter driver for cloud tiering and fast disaster recovery)
 - **Premium SSD performance tier change**: Can change performance tier (e.g., P15 → P20) while the VM is running, without resizing the disk or stopping the VM; zero downtime
 - **Action Group notification types**: Email, SMS, Push (Azure mobile app) = notification types; Webhook, Azure Function, Logic App = action (automation) types
@@ -2996,9 +2996,9 @@
 #### ARM Templates, Bicep, and Monitoring
 - **ARM linked template output**: Access linked deployment outputs using `reference('<deploymentName>').outputs.<outputName>.value` — `.value` suffix required in ARM JSON
 - **Bicep module output**: Access using `<moduleName>.outputs.<outputName>` — no `.value` suffix needed in Bicep (typed value directly accessible)
-- **Bicep module cross-scope**: Use `scope: resourceGroup('RGName')` on a module to deploy resources to a different resource group from a subscription-scoped parent file
-- **Bicep default targetScope**: If `targetScope` is omitted, defaults to `resourceGroup`; subscription/tenant/managementGroup scopes must be explicitly declared
-- **Bicep subscription + RG deployment**: Create resource group at subscription scope, then use module with `scope: resourceGroup('Name')` for resource-group-level resources — both can coexist in one deployment
+- **Bicep targetScope**: Omitting `targetScope` deploys to a resource group. The group name comes from `az deployment group create --resource-group rg-app`. With `targetScope = 'subscription'`, deploy with `az deployment sub create` and do not pass `--resource-group`
+- **Bicep module scope**: A module is another Bicep file called by the parent. With no `scope`, it deploys to the same place as the parent
+- **Bicep subscription file plus a resource group module**: Subscription-scoped `main.bicep` only creates the resource group. The storage account resource is in `storage.bicep`, and `scope: resourceGroup('rg-app')` places it in that group. One `az deployment sub create` deploys both
 - **VM Insights DCR prerequisite**: Azure Policy-based VM Insights enablement requires a Data Collection Rule (DCR) as the prerequisite; DCR defines what data to collect from VMs
 - **Azure Workbook templates**: Reusable blueprints containing pre-built KQL queries, metrics, charts, and parameters; deploy to create Workbook instances without rebuilding from scratch
 - **AcrPush role**: Least-privilege ACR role for CI/CD pipelines — includes both push/write and pull/read permissions; AcrPull is pull-only; Contributor is too broad
@@ -3040,7 +3040,7 @@
 
 #### 네트워킹
 - **부하 분산 장치 상태 프로브 IP**: 상태 프로브는 항상 168.63.129.16(Azure 플랫폼 IP)에서 발생; 백엔드 VM NSG에서 프로브 포트에 허용 필요
-- **NVA IP 전달**: NVA 역할을 하는 VM은 Azure에서 NIC에 IP 전달이 활성화되어야 함; 기본적으로 비활성화 — 없으면 패킷 삭제
+- **NVA IP 전달**: NVA(Network Virtual Appliance)는 방화벽이나 라우터로 쓰는 VM이다. Azure NIC의 IP 전달을 켜야 한다(NIC → IP configurations → IP forwarding). 기본값은 꺼져 있어서, 목적지가 그 NIC IP가 아닌 패킷은 Azure가 삭제한다. 게스트 OS에서도 전달을 켜야 한다(Linux `net.ipv4.ip_forward`, Windows 라우팅)
 - **Azure Private Link**: VNet의 개인 IP를 Private Endpoint를 통해 Azure PaaS 서비스에 할당; 트래픽이 Azure 백본에서 유지되며 인터넷 노출 없음
 - **Azure PaaS 기본 공개 접근**: 모든 Azure PaaS 서비스는 기본적으로 공용 엔드포인트가 열려 있음; 접근 제한을 위해 방화벽, 서비스 엔드포인트 또는 Private Endpoint 구성 필요
 - **스토리지 방화벽 서비스 엔드포인트**: 스토리지 계정 방화벽에 VNet 추가 시 해당 서브넷에서 Microsoft.Storage 서비스 엔드포인트 활성화 필요
@@ -3050,9 +3050,9 @@
 
 #### 스토리지, SAS, App Service
 - **App Service 미리 보기로 스왑**: 다단계 스왑으로 스테이징에 프로덕션 설정을 먼저 적용하여 검증; 트래픽 전환 전 커밋 또는 취소 가능; 표준 스왑은 검증 단계 없음
-- **App Service 루트 도메인 확인**: Azure 제공 확인 ID가 포함된 `asuid`라는 이름의 TXT 레코드 사용; 루트(apex) 도메인은 CNAME 레코드 사용 불가
+- **App Service 루트 도메인 확인**: A 레코드는 이름을 IPv4로 연결한다. CNAME은 이름을 다른 이름으로 넘긴다(`www` → `앱이름.azurewebsites.net`). 루트 도메인에는 CNAME을 쓸 수 없다. TXT는 트래픽을 보내지 않고 소유만 증명한다. `www`는 CNAME으로 충분하다. 루트(`contoso.com`)는 Custom domains에 나온 App Service IP로 A 레코드를 만들고, 이름은 `asuid`(App Service unique ID), 값은 Custom Domain Verification ID인 TXT를 추가한다
 - **서비스 SAS 저장된 액세스 정책**: 서비스 SAS만 저장된 액세스 정책 지원으로 취소 가능; 계정 SAS와 사용자 위임 SAS는 만료 전 취소 불가
-- **Azure Files Entra Kerberos**: 도메인 컨트롤러 없이 Entra에 가입된 디바이스에서 Azure Files SMB 접근 활성화; 클라우드 발급 Kerberos 티켓; 클라우드 전용 ID 환경
+- **Azure Files Entra Kerberos**: 스토리지 계정의 SMB 인증 원본. Entra에 가입된 기기에 로그인한 사용자가 클라우드에서 발급된 Kerberos 티켓으로 공유를 연다. 기기 자체는 신원이 아니다. 도메인 컨트롤러는 필요 없다. 컴퓨터 계정, 스토리지 계정 키, Entra에 가입되지 않은 기기에는 쓰이지 않는다
 - **Azure File Sync 에이전트 구성 요소**: FileSyncSvc.exe(백그라운드 동기화 서비스) + StorageSync.sys(클라우드 계층화 및 빠른 재해 복구를 위한 파일 시스템 필터 드라이버)
 - **Premium SSD 성능 계층 변경**: VM 실행 중에 디스크 크기 조정이나 VM 중지 없이 성능 계층 변경 가능(예: P15 → P20); 가동 중지 시간 없음
 - **Action Group 알림 유형**: 이메일, SMS, 푸시(Azure 모바일 앱) = 알림 유형; 웹훅, Azure Function, Logic App = 작업(자동화) 유형
@@ -3061,9 +3061,9 @@
 #### ARM 템플릿, Bicep, 모니터링
 - **ARM 연결 템플릿 출력**: `reference('<deploymentName>').outputs.<outputName>.value`로 연결된 배포 출력에 접근 — ARM JSON에서 `.value` 접미사 필수
 - **Bicep 모듈 출력**: `<moduleName>.outputs.<outputName>`으로 접근 — Bicep에서는 `.value` 접미사 불필요(형식화된 값으로 직접 접근)
-- **Bicep 모듈 교차 범위**: 구독 범위 부모 파일에서 다른 리소스 그룹에 리소스를 배포하기 위해 모듈에서 `scope: resourceGroup('RGName')` 사용
-- **Bicep 기본 targetScope**: `targetScope` 생략 시 기본값은 `resourceGroup`; 구독/테넌트/관리 그룹 범위는 명시적으로 선언 필요
-- **Bicep 구독 + RG 배포**: 구독 범위에서 리소스 그룹을 만들고, `scope: resourceGroup('Name')`이 있는 모듈로 리소스 그룹 수준 리소스 배포 — 하나의 배포에 공존 가능
+- **Bicep targetScope**: `targetScope`를 빼면 리소스 그룹 배포다. 그룹 이름은 `az deployment group create --resource-group rg-app`으로 정한다. `targetScope = 'subscription'`이면 `az deployment sub create`를 쓰고 `--resource-group`은 주지 않는다
+- **Bicep 모듈 범위**: 모듈은 부모 파일이 부르는 다른 Bicep 파일이다. `scope`가 없으면 부모와 같은 곳에 배포된다
+- **Bicep 구독 파일과 리소스 그룹 모듈**: 구독 범위 `main.bicep`은 리소스 그룹만 만든다. 스토리지 계정 리소스는 `storage.bicep`에 있고, `scope: resourceGroup('rg-app')` 때문에 그 그룹 안에 생긴다. `az deployment sub create` 한 번으로 둘 다 배포된다
 - **VM Insights DCR 필수 구성 요소**: Azure Policy 기반 VM Insights 활성화에는 데이터 수집 규칙(DCR)이 필수; DCR은 VM에서 수집할 데이터를 정의
 - **Azure Workbook 템플릿**: 미리 빌드된 KQL 쿼리, 메트릭, 차트, 매개변수가 포함된 재사용 가능한 청사진; 처음부터 다시 만들지 않고 Workbook 인스턴스 배포
 - **AcrPush 역할**: CI/CD 파이프라인을 위한 최소 권한 ACR 역할 — 푸시/쓰기 및 가져오기/읽기 권한 모두 포함; AcrPull은 가져오기 전용; Contributor는 과도한 권한
@@ -3102,7 +3102,7 @@
 - **Service endpoint policy limitation**: policies only filter traffic from Azure VNet subnets; **on-premises traffic bypasses service endpoint policies entirely**
 - **Azure DNS record set max**: 20 records per record set (applies to A, AAAA, MX, TXT)
 - **Zone apex alias record**: CNAME cannot be used at the zone apex; use an **Alias record** pointing to Traffic Manager, Azure CDN, or Front Door
-- **IP forwarding on NVA NIC**: must be explicitly enabled in Azure on the NIC resource; without it, Azure drops packets addressed to other destinations
+- **IP forwarding on NVA NIC**: An NVA is a VM acting as a firewall or router. Enable it at NIC → IP configurations → IP forwarding, or Azure drops packets addressed to other destinations. Also enable forwarding inside the guest OS
 
 #### Storage, SAS, and Blob
 - **Service SAS + Stored Access Policy**: only SAS type that supports stored access policies; deleting the policy revokes all linked SAS tokens **without rotating the storage account key**
@@ -3132,7 +3132,7 @@
 #### Bicep and ARM Templates
 - **Bicep module output syntax**: `moduleName.outputs.outputName` (no `.value` suffix); contrast with ARM linked deployments: `reference('deploymentName').outputs.outputName.value`
 - **Bicep conditional output = ternary operator**: `output x = condition ? trueValue : falseValue`; `if(...)` is only for conditional resource/module deployment, not output values
-- **Mixed scope in Bicep**: set `targetScope = 'subscription'`; create resource group as a top-level resource; use a module with `scope: resourceGroup('name')` for resources within that group
+- **Mixed scope in Bicep**: Subscription-scoped `main.bicep` creates the resource group and calls a module with `scope: resourceGroup('rg-app')`. The storage account resource is in `storage.bicep`. Deploy with `az deployment sub create`, not `--resource-group`
 
 #### Monitoring and Azure Monitor
 - **VM Insights default DCR = performance only**: enabling VM Insights with the default DCR collects guest OS performance metrics; processes/dependencies and event logs are disabled by default to reduce cost
@@ -3175,7 +3175,7 @@
 - **서비스 엔드포인트 정책 제한**: Azure VNet 서브넷의 트래픽만 필터링; **온-프레미스 트래픽은 서비스 엔드포인트 정책을 완전히 우회**
 - **Azure DNS 레코드 집합 최대값**: 레코드 집합당 최대 20개 레코드(A, AAAA, MX, TXT에 적용)
 - **영역 루트 Alias 레코드**: 영역 루트에 CNAME 사용 불가; Traffic Manager, Azure CDN, Front Door를 가리키는 **Alias 레코드** 사용
-- **NVA NIC의 IP 전달**: Azure NIC 리소스에서 명시적으로 활성화해야 함; 없으면 Azure가 다른 대상으로 주소가 지정된 패킷을 삭제
+- **NVA NIC의 IP 전달**: NVA는 방화벽이나 라우터로 쓰는 VM이다. NIC → IP configurations → IP forwarding에서 켜지 않으면 다른 대상으로 가는 패킷을 Azure가 삭제한다. 게스트 OS의 전달 설정도 따로 켜야 한다
 
 #### Storage, SAS 및 Blob
 - **Service SAS + 저장된 액세스 정책**: 저장된 액세스 정책을 지원하는 유일한 SAS 유형; 정책 삭제 시 연결된 모든 SAS 토큰 즉시 취소 — **Storage Account 키 순환 불필요**
@@ -3205,7 +3205,7 @@
 #### Bicep 및 ARM 템플릿
 - **Bicep 모듈 출력 구문**: `moduleName.outputs.outputName`(`.value` 접미사 없음); ARM 연결 배포의 `reference('deploymentName').outputs.outputName.value`와 대조
 - **Bicep 조건부 출력 = 삼항 연산자**: `output x = condition ? trueValue : falseValue`; `if(...)`는 조건부 리소스/모듈 배포에만 사용, 출력 값에는 미사용
-- **Bicep 혼합 범위**: `targetScope = 'subscription'` 설정; 리소스 그룹을 최상위 리소스로 만들기; 해당 그룹 내 리소스에는 `scope: resourceGroup('name')`이 포함된 모듈 사용
+- **Bicep 혼합 범위**: 구독 범위 `main.bicep`이 리소스 그룹을 만들고 `scope: resourceGroup('rg-app')` 모듈을 부른다. 스토리지 계정 리소스는 `storage.bicep`에 있다. 배포는 `az deployment sub create`이고 `--resource-group`은 쓰지 않는다
 
 #### 모니터링 및 Azure Monitor
 - **VM Insights 기본 DCR = 성능만**: 기본 DCR로 VM Insights 활성화 시 게스트 OS 성능 메트릭만 수집; 프로세스/종속성 및 이벤트 로그는 비용 절감을 위해 기본적으로 비활성화
