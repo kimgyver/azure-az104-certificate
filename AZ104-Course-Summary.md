@@ -2260,7 +2260,7 @@
 - Distractors: Application Insights (APM only), Storage account, Azure Monitor workspace (Prometheus)
 
 #### Azure Files — AD DS Authentication
-- **`Join-AzStorageAccount`** creates a **computer account** in AD DS by default
+- **`Join-AzStorageAccount`** is run on a domain-joined admin PC. It creates a computer account in AD DS that represents the storage account, not an account for the PC where you run the command. Domain controllers then issue Kerberos tickets for SMB
 - Rationale: storage account is treated as a server-style network resource for Kerberos/SMB
 - Optional: specify `-DomainAccountType ServiceLogonAccount` to create a service logon account instead
 - Not supported: group managed service accounts (gMSAs)
@@ -2339,7 +2339,7 @@
 - 함정: Application Insights (APM용), Storage account, Azure Monitor workspace (Prometheus용)
 
 #### Azure Files — AD DS 인증
-- **`Join-AzStorageAccount`**는 기본적으로 AD DS에 **컴퓨터 계정** 생성
+- **`Join-AzStorageAccount`**는 도메인에 가입된 관리용 PC에서 실행한다. AD DS에 만드는 컴퓨터 계정은 명령을 친 PC가 아니라 스토리지 계정을 나타낸다. 그다음 도메인 컨트롤러가 SMB용 Kerberos 티켓을 발급한다
 - 이유: 스토리지 계정이 Kerberos/SMB용 서버형 네트워크 리소스로 취급됨
 - 선택 사항: `-DomainAccountType ServiceLogonAccount` 지정 시 서비스 로그온 계정 생성 가능
 - 지원 안 됨: 그룹 관리 서비스 계정(gMSA)
@@ -2950,7 +2950,7 @@
 - **AKS Spot Deallocate eviction**: Evicted Spot VMs in Stopped (deallocated) state continue consuming vCPU quota — prevents autoscaler from provisioning new nodes; use Delete policy to release quota immediately
 - **Archive blob rehydration**: For immediate access, use High Priority + Hot tier (< 1 hour for objects under 10 GB); Standard Priority = up to 15 hours
 - **Azure SQL PITR retention**: Default 7 days. Configurable 1–35 days, except Basic which is capped at 1–7 days. Long-term retention (LTR) is a separate feature and can keep full backups for up to 10 years
-- **Join-AzStorageAccount AD DS object**: Creates a computer account in AD DS by default to represent the storage account; enables Kerberos SMB auth
+- **Join-AzStorageAccount AD DS object**: Run from a domain-joined admin PC. The computer account it creates in AD DS represents the storage account, not that PC. Enables AD DS Kerberos SMB; tickets come from the domain controller, not from Entra Kerberos
 - **VM power states**: Stopped = OS shutdown, compute host still reserved, billing continues; Stopped (deallocated) = compute host released, billing stops, disk charges continue
 
 #### Identity and RBAC
@@ -3015,7 +3015,7 @@
 - **AKS Spot Deallocate 제거**: 제거된 Spot VM이 Stopped (deallocated) 상태로 vCPU 할당량을 계속 점유 — 자동 크기 조정기의 새 노드 프로비저닝 방해; Delete 정책 사용 시 즉시 할당량 반환
 - **Archive Blob 리하이드레이션**: 즉시 접근에는 높은 우선순위 + Hot 계층 사용(10GB 미만 객체 1시간 이내); 표준 우선순위는 최대 15시간 소요
 - **Azure SQL PITR 보존**: 기본 7일. 1–35일로 설정 가능. Basic만 1–7일이 상한. LTR(장기 보존)은 별도 기능이며 전체 백업을 최대 10년까지 보관
-- **Join-AzStorageAccount AD DS 개체**: 기본적으로 AD DS에 컴퓨터 계정 생성으로 스토리지 계정을 표현; Kerberos SMB 인증 활성화
+- **Join-AzStorageAccount AD DS 개체**: 도메인에 가입된 관리용 PC에서 실행한다. AD DS에 생기는 컴퓨터 계정은 그 PC가 아니라 스토리지 계정을 나타낸다. AD DS Kerberos SMB가 켜지고, 티켓은 Entra Kerberos가 아니라 도메인 컨트롤러가 발급한다
 - **VM 전원 상태**: Stopped = OS 종료, 컴퓨팅 호스트 예약 유지, 과금 계속; Stopped (deallocated) = 컴퓨팅 호스트 해제, 컴퓨팅 요금 중단, 디스크 요금 계속
 
 #### ID 및 RBAC
@@ -3139,7 +3139,7 @@
 - **KQL render timechart**: `| render timechart` renders time-series aggregation as a line chart; typical pattern: `summarize count() by bin(TimeGenerated, 1h) | render timechart`
 
 #### Azure Files, Backup, and Recovery
-- **AzFilesHybrid creates Computer account**: `Join-AzStorageAccountForAuth` creates a **computer account** (not user/service) in AD DS by default
+- **AzFilesHybrid creates Computer account**: `Join-AzStorageAccountForAuth`, run on a domain-joined admin PC, creates an AD DS computer account for the storage account (not a user account, and not an account for the PC running the command)
 - **Azure Files AD DS + computer account (LocalSystem)**: computer accounts cannot be synced to Entra ID → RBAC assignment not possible → use **default share-level permission** for all authenticated identities
 - **File Recovery + Original Location**: for snapshot-based Azure Files backup, restoring individual deleted files uses File Recovery with Original Location
 - **Azure Files Backup = SMB only**: Azure Backup for Azure Files supports SMB file shares; NFS file shares are not supported
@@ -3212,7 +3212,7 @@
 - **KQL render timechart**: `| render timechart`는 시간 계열 집계를 꺾은선형 차트로 렌더링; 일반적인 패턴: `summarize count() by bin(TimeGenerated, 1h) | render timechart`
 
 #### Azure Files, 백업 및 Recovery Services
-- **AzFilesHybrid는 컴퓨터 계정 만들기**: `Join-AzStorageAccountForAuth`는 AD DS에 기본적으로 **컴퓨터 계정**(사용자/서비스 아님) 만들기
+- **AzFilesHybrid는 컴퓨터 계정 만들기**: 도메인에 가입된 관리용 PC에서 실행한 `Join-AzStorageAccountForAuth`가 AD DS에 스토리지 계정용 컴퓨터 계정을 만든다. 사용자 계정도 아니고, 명령을 실행한 PC의 계정도 아니다
 - **Azure Files AD DS + 컴퓨터 계정(LocalSystem)**: 컴퓨터 계정은 Entra ID에 동기화 불가 → RBAC 할당 불가 → 모든 인증된 ID에 **기본 공유 수준 권한** 사용
 - **파일 복구 + 원래 위치**: 스냅샷 기반 Azure Files 백업에서 삭제된 개별 파일 복원에는 원래 위치를 사용한 파일 복구 사용
 - **Azure Files 백업 = SMB만**: Azure Files의 Azure Backup은 SMB 파일 공유 지원; NFS 파일 공유는 미지원
