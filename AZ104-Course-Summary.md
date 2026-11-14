@@ -2985,7 +2985,7 @@
 
 #### Storage, SAS, and App Service
 - **App Service Swap with preview**: Multi-phase swap applies production settings to staging first for validation; can commit or cancel before traffic switches; standard swap has no validation phase
-- **App Service root domain verification**: A record maps a name to an IPv4 address. CNAME maps a name to another name (`www` → `app.azurewebsites.net`) and cannot be used on the root domain. TXT does not route traffic; it proves ownership. For `www`, a CNAME is enough. For the root (`contoso.com`), add an A record to the App Service IP shown on Custom domains, plus a TXT record named `asuid` (App Service unique ID) whose value is the Custom Domain Verification ID
+- **App Service root domain verification**: Three DNS records, and what you type in each. CNAME, for `www` only: name `www`, value `app.azurewebsites.net`. A record, for the root `contoso.com`: name `@`, value the App Service IPv4 shown on Custom domains. TXT, also for the root: name `asuid`, value the Custom Domain Verification ID from that same page. The root cannot use a CNAME. The TXT does not send visitors to the app; it only proves you own the domain
 - **Service SAS stored access policies**: Only Service SAS supports stored access policies for revocation; Account SAS and User delegation SAS cannot be revoked before expiry
 - **Azure Files Entra Kerberos**: Storage account SMB identity source. The signed-in user on an Entra-joined device gets a cloud-issued Kerberos ticket and opens the share; the device itself is not the identity. No domain controller. Not used for a computer account, a storage account key, or a device that is not Entra-joined
 - **Azure File Sync agent components**: FileSyncSvc.exe (background sync service) + StorageSync.sys (file system filter driver for cloud tiering and fast disaster recovery)
@@ -3050,7 +3050,7 @@
 
 #### 스토리지, SAS, App Service
 - **App Service 미리 보기로 스왑**: 다단계 스왑으로 스테이징에 프로덕션 설정을 먼저 적용하여 검증; 트래픽 전환 전 커밋 또는 취소 가능; 표준 스왑은 검증 단계 없음
-- **App Service 루트 도메인 확인**: A 레코드는 이름을 IPv4로 연결한다. CNAME은 이름을 다른 이름으로 넘긴다(`www` → `앱이름.azurewebsites.net`). 루트 도메인에는 CNAME을 쓸 수 없다. TXT는 트래픽을 보내지 않고 소유만 증명한다. `www`는 CNAME으로 충분하다. 루트(`contoso.com`)는 Custom domains에 나온 App Service IP로 A 레코드를 만들고, 이름은 `asuid`(App Service unique ID), 값은 Custom Domain Verification ID인 TXT를 추가한다
+- **App Service 루트 도메인 확인**: DNS 기록 세 개에 넣는 값. CNAME은 `www`만 쓴다. 이름은 `www`, 값은 `앱이름.azurewebsites.net`. A 레코드는 루트 `contoso.com`용이다. 이름은 `@`, 값은 Custom domains 화면에 나온 App Service IPv4. TXT도 루트용이다. 이름은 `asuid`, 값은 같은 화면의 Custom Domain Verification ID. 루트에는 CNAME을 넣을 수 없다. TXT는 방문자를 앱으로 보내지 않고, 내 도메인인지 증명만 한다
 - **서비스 SAS 저장된 액세스 정책**: 서비스 SAS만 저장된 액세스 정책 지원으로 취소 가능; 계정 SAS와 사용자 위임 SAS는 만료 전 취소 불가
 - **Azure Files Entra Kerberos**: 스토리지 계정의 SMB 인증 원본. Entra에 가입된 기기에 로그인한 사용자가 클라우드에서 발급된 Kerberos 티켓으로 공유를 연다. 기기 자체는 신원이 아니다. 도메인 컨트롤러는 필요 없다. 컴퓨터 계정, 스토리지 계정 키, Entra에 가입되지 않은 기기에는 쓰이지 않는다
 - **Azure File Sync 에이전트 구성 요소**: FileSyncSvc.exe(백그라운드 동기화 서비스) + StorageSync.sys(클라우드 계층화 및 빠른 재해 복구를 위한 파일 시스템 필터 드라이버)
