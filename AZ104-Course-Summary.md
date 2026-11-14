@@ -2138,7 +2138,7 @@
 - Private endpoint created without target permissions starts in **Pending** state
 
 #### Bastion, App Service, ACR, AKS
-- Azure Bastion Standard feature for external users without portal accounts: **Shareable Link**
+- Azure Bastion: browser RDP/SSH without a public IP on the VM. Basic supports portal connect. **Shareable Link** (no Azure portal account) and custom ports need **Standard** or higher
 - Azure Bastion **Premium** is required for **session recording** and **private-only deployment**
 - App Service slot validation before final swap: **Swap with preview**
 - App Service traffic routing to slots stays pinned for **one hour or until cookies are deleted**
@@ -2164,7 +2164,7 @@
 
 #### 거버넌스와 ID
 - `modify`는 생성/업데이트 시점에는 변경 가능하지만, **기존** 비준수 리소스는 별도의 **Remediation Task**가 필요
-- Entra 역할 할당 가능 그룹은 **Assigned** 멤버십만 사용 가능하며 **동적 멤버십은 지원되지 않음**
+- Entra 역할 할당 가능 그룹(`isAssignableToRole = true`)은 구성원을 **Assigned**로만 넣는다. 동적 멤버십은 안 된다. 규칙으로 들어오면 그 그룹에 걸린 역할까지 따라가기 때문이다
 - User Administrator / Guest Inviter만 게스트 초대를 허용하려면 **Only users assigned to specific admin roles can invite guests** 선택
 - 사용자 생성과 속성 관리의 최소 권한 역할: **User Administrator**
 - 사용자 생성, 암호 재설정, 라이선스 관리까지 포함한 최소 권한 역할도 **User Administrator**
@@ -2208,7 +2208,7 @@
 - 권한 없이 생성된 private endpoint 연결의 초기 상태는 **Pending**
 
 #### Bastion, App Service, ACR, AKS
-- 포털 계정 없는 외부 사용자에게 Bastion으로 안전하게 접속시키려면 **Shareable Link** 사용
+- Bastion은 VM에 공인 IP 없이 브라우저 RDP/SSH. Basic도 포털 접속은 됨. 포털 계정 없는 사용자는 **Shareable Link**(Standard 이상). 사용자 지정 포트도 Standard 이상
 - **Session recording**과 **private-only deployment**는 Azure Bastion **Premium** 필요
 - App Service 슬롯의 사전 검증 교체는 **Swap with preview** 사용
 - App Service 슬롯 트래픽 고정은 **1시간 또는 쿠키 삭제 시까지** 유지
@@ -2592,7 +2592,7 @@
 - **App Service Key Vault reference refresh**: App Service caches secret values; maximum refresh interval is **24 hours**; restart forces immediate refresh
 - **AKS Windows node pool**: requires **Standard SKU load balancer** (Basic SKU does not support multiple node pools)
 - **ACR AcrPush role**: includes both push and pull permissions; minimum privilege for CI/CD pipelines
-- **Azure Bastion Standard SKU**: minimum SKU required for **custom port** support (Basic only supports default RDP 3389 and SSH 22)
+- **Azure Bastion Standard SKU**: minimum for **custom ports** and **Shareable Link**. Basic still has Bastion portal connect, but only default RDP 3389 and SSH 22
 - **Kubernetes request/limit vs ACI**: Kubernetes → request = guaranteed minimum, limit = hard cap; ACI → request = effective maximum (no separate limit)
 - **Logic App for budget automation**: Logic App with built-in connectors (Slack, ITSM, etc.) triggered by Budget alert actions; no custom code required
 
@@ -2661,7 +2661,7 @@
 - **App Service Key Vault 참조 새로 고침**: 비밀 값 캐시; 최대 새로 고침 주기 **24시간**; 재시작 시 즉시 새로 고침
 - **AKS Windows 노드 풀**: **Standard SKU 부하 분산 장치** 필요 (Basic은 여러 노드 풀 미지원)
 - **ACR AcrPush 역할**: 푸시 + 풀 권한 포함; CI/CD 파이프라인의 최소 권한 역할
-- **Azure Bastion Standard SKU**: **사용자 지정 포트** 지원 최소 SKU (Basic은 기본 RDP 3389·SSH 22만 지원)
+- **Azure Bastion Standard SKU**: **사용자 지정 포트**와 **공유 링크**의 최소 SKU. Basic도 Bastion 포털 접속은 되지만 RDP 3389·SSH 22만 지원
 - **Kubernetes 요청/제한 vs ACI**: K8s → request = 최솟값 보장, limit = 하드 캡; ACI → request = 실질적 최댓값 (별도 limit 없음)
 - **Logic App + 예산 자동화**: 예산 경고 작업으로 Logic App 트리거; 기본 제공 커넥터(Slack, ITSM 등) 활용; 사용자 지정 코드 불필요
 
@@ -3086,7 +3086,7 @@
 - **Locks require Owner or User Access Administrator**: `Microsoft.Authorization/locks/*` permission needed; Contributor does NOT have this; **User Access Administrator** is the least-privilege option
 
 #### Identity, Entra ID, and RBAC
-- **Role-assignable groups must use Assigned membership**: dynamic membership is explicitly prohibited for groups with `isAssignableToRole = true` to prevent automated elevation of privileges
+- **Role-assignable groups**: A group with `isAssignableToRole = true` can receive Entra or Azure roles. Membership must be Assigned (manual). Dynamic membership is not allowed, so a rule cannot add people and give them those roles automatically
 - **Guest invite settings**: "Only users assigned to specific admin roles can invite guests" restricts invitations to designated admin roles; "Members and specific admin roles" is broader
 - **User Administrator role**: minimum role for creating users, resetting passwords, and managing licenses simultaneously
 - **Bulk create CSV required columns**: Name + User principal name + Initial password + Block sign in (4 required; Department, Usage location, Display name are optional)
@@ -3099,7 +3099,7 @@
 - **Disable BGP route propagation**: prevents on-premises BGP-learned routes from appearing in a subnet route table, forcing all routing through UDRs; essential when using an NVA
 - **ASG membership constraint = same VNet**: all NICs in an ASG must exist in the same VNet; the constraint is VNet-based (not region or subscription); a VM can belong to multiple ASGs simultaneously
 - **Application Gateway + App Service**: enable **"Pick host name from backend target"** in backend HTTP settings so the Host header is replaced with the App Service FQDN
-- **Service endpoint policy limitation**: policies only filter traffic from Azure VNet subnets; **on-premises traffic bypasses service endpoint policies entirely**
+- **Service endpoint policy limitation**: This is a subnet outbound rule, not the storage account firewall. With Microsoft.Storage service endpoint on, the policy allows only listed storage accounts from that subnet. On-premises traffic does not use that path, so the policy does not apply to it. Storage firewall is the opposite side: which networks may reach the account
 - **Azure DNS record set max**: 20 records per record set (applies to A, AAAA, MX, TXT)
 - **Zone apex alias record**: CNAME cannot be used at the zone apex; use an **Alias record** pointing to Traffic Manager, Azure CDN, or Front Door
 - **IP forwarding on NVA NIC**: An NVA is a VM acting as a firewall or router. Enable it at NIC → IP configurations → IP forwarding, or Azure drops packets addressed to other destinations. Also enable forwarding inside the guest OS
@@ -3122,7 +3122,7 @@
 - **ACR geo-replication requires Premium tier**: geo-replication is a Premium-only feature; Standard tier does not support it; must upgrade before enabling
 
 #### Azure Bastion and Connectivity
-- **Bastion Shareable Link (Standard SKU)**: generates a URL allowing access without an Azure portal account; not available on Basic SKU
+- **Bastion Shareable Link (Standard SKU)**: Bastion is browser RDP/SSH to VMs in a VNet without giving the VM a public IP. Basic still supports Bastion portal connect. Shareable Link is not that basic feature; it creates a URL so users without an Azure portal account can connect, and needs Standard or higher. Custom inbound ports also need Standard or higher; Basic is only RDP 3389 and SSH 22
 - **Bastion Premium for session recording**: session recording + storage in customer-designated account is **Premium-only**; Standard has advanced features but no recording
 - **Bastion Premium for private deployment**: no public IP on the Bastion host is also a Premium feature; Standard and Basic require public IP
 
@@ -3159,7 +3159,7 @@
 - **잠금에는 Owner 또는 User Access Administrator 필요**: `Microsoft.Authorization/locks/*` 권한 필요; Contributor에는 없음; **User Access Administrator**가 최소 권한 옵션
 
 #### ID, Entra ID 및 RBAC
-- **역할 할당 가능 그룹은 Assigned 구성원 자격 필수**: `isAssignableToRole = true` 그룹에는 동적 구성원 자격 명시적으로 금지 — 의도치 않은 권한 상승 방지
+- **역할 할당 가능 그룹**: `isAssignableToRole = true`인 그룹에는 Entra나 Azure 역할을 줄 수 있다. 구성원은 Assigned(직접 추가)만 된다. 동적 멤버십은 안 된다. 규칙으로 사람이 들어오면 그 역할까지 따라가기 때문이다
 - **게스트 초대 설정**: "특정 관리자 역할에 할당된 사용자만 게스트 초대 가능"이 가장 제한적; "구성원 및 특정 관리자 역할"은 더 넓은 범위
 - **User Administrator 역할**: 사용자 만들기, 암호 재설정, 라이선스 관리를 동시에 수행하는 최소 역할
 - **대량 만들기 CSV 필수 열**: Name + UPN + 초기 암호 + 로그인 차단(4개 필수; Department, 사용 위치, 표시 이름은 선택)
@@ -3172,7 +3172,7 @@
 - **BGP 경로 전파 비활성화**: 온-프레미스 BGP 학습 경로가 서브넷 경로 테이블에 나타나지 않도록 방지, 모든 라우팅을 UDR을 통해 강제; NVA 사용 시 필수
 - **ASG 구성원 제약 = 동일 VNet**: ASG의 모든 NIC는 동일한 VNet에 있어야 함; 지역이나 구독이 아닌 VNet 기반 제약; VM은 여러 ASG에 동시에 속할 수 있음
 - **Application Gateway + App Service**: 백엔드 HTTP 설정에서 **"백엔드 대상에서 호스트 이름 선택"** 활성화로 Host 헤더를 App Service FQDN으로 교체
-- **서비스 엔드포인트 정책 제한**: Azure VNet 서브넷의 트래픽만 필터링; **온-프레미스 트래픽은 서비스 엔드포인트 정책을 완전히 우회**
+- **서비스 엔드포인트 정책 제한**: 스토리지 계정 방화벽이 아니다. 서브넷에 Microsoft.Storage 서비스 엔드포인트가 켜진 뒤, 그 서브넷에서 나갈 때 허용 목록의 스토리지 계정만 가게 막는 정책이다. 온-프레미스 트래픽은 이 경로를 쓰지 않아서 정책이 적용되지 않는다. 스토리지 계정 방화벽은 반대로, 계정으로 들어올 수 있는 네트워크를 정한다
 - **Azure DNS 레코드 집합 최대값**: 레코드 집합당 최대 20개 레코드(A, AAAA, MX, TXT에 적용)
 - **영역 루트 Alias 레코드**: 영역 루트에 CNAME 사용 불가; Traffic Manager, Azure CDN, Front Door를 가리키는 **Alias 레코드** 사용
 - **NVA NIC의 IP 전달**: NVA는 방화벽이나 라우터로 쓰는 VM이다. NIC → IP configurations → IP forwarding에서 켜지 않으면 다른 대상으로 가는 패킷을 Azure가 삭제한다. 게스트 OS의 전달 설정도 따로 켜야 한다
@@ -3195,7 +3195,7 @@
 - **ACR 지역 복제는 Premium 계층 필요**: 지역 복제는 Premium 전용 기능; Standard 계층은 지원 안 함; 활성화 전에 업그레이드 필요
 
 #### Azure Bastion 및 연결
-- **Bastion 공유 링크(Standard SKU)**: Azure Portal 계정 없이 액세스 가능한 URL 생성; Basic SKU에서는 사용 불가
+- **Bastion 공유 링크(Standard SKU)**: Bastion은 VNet 안 VM에 브라우저로 RDP/SSH 하는 서비스다. VM에 공인 IP를 달지 않아도 된다. Basic도 Bastion 포털 접속은 된다. 공유 링크는 그 기본 기능이 아니다. Azure 포털 계정 없이 URL로 접속하게 하는 기능이고 Standard 이상이다. 사용자 지정 인바운드 포트도 Standard 이상이다. Basic은 RDP 3389, SSH 22만 된다
 - **세션 녹화를 위한 Bastion Premium**: 고객 지정 Storage Account에 녹화 저장은 **Premium 전용**; Standard는 고급 기능 있지만 녹화 없음
 - **프라이빗 배포를 위한 Bastion Premium**: Bastion 호스트에 공용 IP 없는 것도 Premium 기능; Standard와 Basic은 공용 IP 필요
 
