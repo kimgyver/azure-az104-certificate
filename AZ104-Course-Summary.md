@@ -1239,10 +1239,10 @@
 ### English
 
 #### LB HA Ports Rule
-- A single load balancing rule with `Protocol: All` and `Port: 0` — forwards **all** TCP/UDP ports to backend
-- Only available on **Standard Load Balancer** with an internal frontend
-- Use case: NVAs (Network Virtual Appliances) where you cannot predict which ports will be used
-- Removes need for separate rules per port
+- HA Ports is **not** "make the load balancer highly available". It is a rule that forwards **every** TCP/UDP port in one go
+- Settings: `Protocol: All`, `Port: 0` (0 means all ports, not "port number zero for HA")
+- Only on **Standard** Load Balancer with an **internal** frontend (not public)
+- Use when the backend is an NVA (firewall/router VM) and you do not know which ports traffic will use — one rule instead of many per-port rules
 
 #### Azure Firewall FQDN Tags
 - Pre-built FQDN groupings maintained by Microsoft (e.g., `WindowsUpdate`, `AzureKubernetesService`)
@@ -1341,10 +1341,10 @@
 ### 한국어
 
 #### LB HA Ports 규칙
-- `프로토콜: 전체`, `포트: 0`으로 설정한 단일 부하 분산 규칙 — **모든** TCP/UDP 포트를 백엔드에 전달
-- **Standard Load Balancer**의 내부 프런트엔드에서만 사용 가능
-- 사용 사례: 어떤 포트가 사용될지 예측할 수 없는 NVA(네트워크 가상 어플라이언스)
-- 포트별 별도 규칙 작성 불필요
+- HA Ports는 **로드밸런서 고가용성 설정이 아니다**. 포트마다 규칙을 만들지 않고 **모든 TCP/UDP 포트**를 백엔드로 넘기는 규칙이다
+- 설정: `프로토콜: 전체`, `포트: 0` (0 = 모든 포트. LB HA를 위해 0을 넣는다는 뜻이 아님)
+- **Standard** Load Balancer의 **내부** 프런트엔드에서만 가능 (공용 LB 아님)
+- 백엔드가 NVA(방화벽·라우터 VM)라서 어떤 포트로 올지 모를 때 쓴다. 포트별 규칙을 수십 개 만들 필요가 없다
 
 #### Azure Firewall FQDN 태그
 - Microsoft가 관리하는 사전 빌드 FQDN 그룹 (예: `WindowsUpdate`, `AzureKubernetesService`)
@@ -1607,15 +1607,14 @@
 - Deprecated modules (do NOT use for new scripts): `AzureAD` (`Get-AzureADUser`), `MSOnline` (`Get-MsolUser`)
 - `Az` module (`Get-AzADUser`) is for Azure resource management, not Entra user attribute management
 
-#### Azure Policy — `modify` Effect
-- **`modify`** effect: adds, updates, or removes resource properties (tags, SKU, location) at deployment time
-- Supports **Remediation Tasks** for existing non-compliant resources — requires managed identity on assignment
-- Existing resources can still be reported as **non-compliant** until a remediation task is run; evaluation and remediation are separate steps
-- Comparison:
-  - `append`: adds array values; limited remediation support
-  - `deployIfNotExists`: deploys a missing companion resource (e.g., diagnostic settings on a VM)
-  - `audit`/`deny`: evaluate compliance only — no changes made
-- Exam pattern: "auto-add tag + remediate existing resources" → `modify`
+#### Azure Policy — effects vs modify operations (do not mix)
+- **Effect** = `then.effect` value. Examples: `deny`, `audit`, `modify`, `append`, `deployIfNotExists`, `auditIfNotExists`, `disabled`
+- **`modify` effect**: changes tags/some properties on create/update. Existing resources stay non-compliant until a **Remediation Task** runs (assignment needs a managed identity)
+- Other effects (not operations):
+  - `append`: add fields on the request; does not remediate existing resources the way `modify` does
+  - `deployIfNotExists`: deploy a missing companion resource (e.g. diagnostic setting)
+  - `audit` / `deny`: evaluate only — `deny` blocks, `audit` only records
+- Exam: "auto-add tag + fix existing resources" → effect **`modify`**
 
 #### Resource Locks — Who Can Manage Them
 - Required permission: `Microsoft.Authorization/locks/*`
@@ -1666,15 +1665,14 @@
 - 더 이상 사용하지 않는 모듈: `AzureAD`(`Get-AzureADUser`), `MSOnline`(`Get-MsolUser`) — 사용 중단 예고
 - `Az` 모듈(`Get-AzADUser`)은 Azure 리소스 관리용; Entra 사용자 속성 관리 불가
 
-#### Azure Policy — `modify` 효과
-- **`modify`** 효과: 배포 시점에 리소스 속성(태그, SKU, 위치) 추가·업데이트·제거
-- 기존 비준수 리소스에 **Remediation Task** 지원 — 정책 할당에 관리 ID 필요
-- 기존 리소스는 정책 평가 후에도 **비준수로만 표시**될 수 있으며, 실제 수정은 **Remediation Task** 실행 시 반영됨
-- 비교:
-  - `append`: 배열 값 추가; 수정 제한적
-  - `deployIfNotExists`: 누락된 동반 리소스 배포 (예: VM에 진단 설정 추가)
-  - `audit`/`deny`: 준수 여부 평가만 — 변경 없음
-- 시험 패턴: "태그 자동 추가 + 기존 리소스 수정" → `modify`
+#### Azure Policy — 효과 vs modify 작업 (섞지 말 것)
+- **효과(effect)** = `then.effect` 값. 예: `deny`, `audit`, `modify`, `append`, `deployIfNotExists`, `auditIfNotExists`, `disabled`
+- **`modify` 효과**: 생성/수정 요청에서 태그·일부 속성을 바꾼다. 기존 리소스는 비준수로만 남고, **Remediation Task**를 실행해야 고쳐진다 (할당에 관리 ID 필요)
+- 다른 효과들 (작업이 아님):
+  - `append`: 요청에 값을 더함. `modify`처럼 기존 리소스 Remediation은 안 함
+  - `deployIfNotExists`: 없는 동반 리소스(진단 설정 등)를 배포
+  - `audit` / `deny`: 평가만 — `deny`는 막고 `audit`은 기록만
+- 시험: "태그 자동 추가 + 기존 리소스 수정" → 효과 **`modify`**
 
 #### 리소스 잠금 — 관리 가능한 역할
 - 필요 권한: `Microsoft.Authorization/locks/*`
@@ -1752,12 +1750,13 @@
 - `audit`: 로그만 기록, 차단 안 함; `modify`: 속성 수정, 차단 안 함
 - 시험 팁: "배포 방지/차단" → **`deny`**
 
-#### Azure Policy — modify 작업 유형
-- `add`: 태그/속성이 **없을 때만** 추가 (기존 값 보존)
-- `addOrReplace`: 없으면 추가, 있으면 **덮어씀**
-- `remove`: 태그/속성 삭제
-- `copy`: 한 필드에서 다른 필드로 값 복사
-- 시험 팁: "기존 값 보존하며 상속" → `add`; "항상 적용" → `addOrReplace`
+#### Azure Policy — modify 안의 operation (효과가 아님)
+- `add` / `addOrReplace` / `Remove`는 효과가 아니다. **`modify`의 `details.operations`** 에만 들어간다
+- `add`: 태그가 **없을 때만** 넣음 (있으면 유지)
+- `addOrReplace`: 없으면 넣고 있으면 **덮어씀**
+- `Remove`: 태그 삭제 (태그 외 임의 속성 삭제가 아님)
+- 다른 필드 값은 `value`에 `[resourcegroup().tags['Env']]`처럼 넣는다. 별도 `copy` operation 이름은 없음
+- 시험 팁: "기존 값 유지하며 상속" → operation `add`; "항상 부모와 같게" → `addOrReplace`
 
 #### Azure Policy — 적용 모드 (enforcementMode)
 - 할당의 `enforcementMode`다. 효과 값 `"disabled"`와 다른 칸이다
@@ -1944,12 +1943,13 @@
 - `audit`: logs only, does not block; `modify`: modifies properties, does not block
 - Exam tip: "Prevent deployment/block non-compliant resources" → **`deny`**
 
-#### Azure Policy — modify Operation Types
-- `add`: adds tag/property **only if not already present** (preserves existing values)
-- `addOrReplace`: adds if missing, **overwrites** if exists
-- `remove`: deletes the tag/property
-- `copy`: copies value from one field to another
-- Exam tip: "Inherit tag but never overwrite existing" → `add`; "always apply value" → `addOrReplace`
+#### Azure Policy — operations inside modify (not effects)
+- `add` / `addOrReplace` / `Remove` are **not** effects. They live only in **`modify` → `details.operations`**
+- `add`: set tag only if missing (keep existing)
+- `addOrReplace`: add or overwrite
+- `Remove`: delete a tag (tags only)
+- To copy a value, put an expression in `value` (e.g. `[resourcegroup().tags['Env']]`). There is no `copy` operation name
+- Exam tip: "inherit, never overwrite" → operation `add`; "always match parent" → `addOrReplace`
 
 #### Azure Policy — Enforcement Mode
 - This is the assignment field `enforcementMode`, not the effect value `"disabled"`
@@ -2685,7 +2685,7 @@
 ### English
 
 #### Networking and Firewall
-- **HA Ports rule**: Protocol: All + Port: 0 — forwards all TCP/UDP traffic to NVA; standard Standard Load Balancer pattern for firewalls and IDS/IPS
+- **HA Ports rule**: Not LB high availability. Standard **internal** LB rule with Protocol All + Port 0 = forward all TCP/UDP ports to an NVA (firewall/IDS) in one rule
 - **Storage firewall VNet rules**: NSG filters VM traffic; VNet rules on storage account control which Azure network the storage service accepts traffic from — these are separate concerns
 - **NSG stateful behavior**: Azure NSGs are stateful; return traffic for established connections is automatically allowed without explicit outbound rules
 - **168.63.129.16**: Azure platform IP — must be reachable from VM subnet; required for VM Agent, extension download/management, DNS, and health probes; blocked by deny-all outbound NSG
@@ -2747,7 +2747,7 @@
 ### 한국어
 
 #### 네트워킹 및 방화벽
-- **HA Ports 규칙**: Protocol: All + Port: 0 — NVA로 모든 TCP/UDP 트래픽 전달; Standard Load Balancer에서 방화벽·IDS/IPS용 표준 패턴
+- **HA Ports 규칙**: LB 고가용성이 아님. Standard **내부** LB에서 Protocol All + Port 0 = 모든 TCP/UDP 포트를 NVA(방화벽·IDS)로 한 규칙에 전달
 - **스토리지 방화벽 VNet 규칙**: NSG는 VM 트래픽 필터링; 스토리지 계정의 VNet 규칙은 스토리지 서비스가 허용하는 Azure 네트워크를 제어 — 별개의 개념
 - **NSG Stateful 동작**: Azure NSG는 Stateful; 허용된 연결의 반환 트래픽은 명시적 아웃바운드 규칙 없이 자동 허용
 - **168.63.129.16**: Azure 플랫폼 IP — VM 서브넷에서 접근 가능해야 함; VM Agent, 확장 다운로드/관리, DNS, 상태 프로브에 필요; 모든 아웃바운드 차단 NSG에 의해 블록됨
@@ -2853,9 +2853,10 @@
 - **CanNotDelete lock precedence**: Management locks override all RBAC roles including Owner — lock must be removed before deletion can proceed
 - **Lock management permission**: `Microsoft.Authorization/locks/*` required — Contributor lacks this; Owner (or User Access Administrator) needed; exam answer = Owner
 - **Management Group RBAC inheritance**: Single Reader assignment at MG scope covers all child subscriptions — minimum assignments for multi-subscription access
-- **Policy modify effect**: Auto-adds/updates tags at creation time and supports remediation tasks for existing non-compliant resources — `append` does not support remediation
-- **Policy deny effect**: Blocks resource creation/update requests that fail policy conditions — `audit` only logs non-compliance
-- **Policy modify operation — `add` vs `addOrReplace`**: `add` sets tag only if absent (preserves existing values); `addOrReplace` overwrites existing tag values
+- **Policy effects vs operations**: Effect = `deny`/`audit`/`modify`/`append`/... . `add`/`addOrReplace`/`Remove` are operations only inside `modify`
+- **Policy modify effect**: Changes tags on create/update; Remediation Task fixes existing resources (`append` does not remediate like this)
+- **Policy deny effect**: Blocks non-compliant create/update — `audit` only logs
+- **Policy modify operation — `add` vs `addOrReplace`**: Inside `modify` only. `add` = set if missing; `addOrReplace` = overwrite
 - **Policy enforcementMode DoNotEnforce**: Assignment field, not effect `"disabled"`. Compliance is still recorded, but the effect is not applied (no deny, no modify). Effect `"disabled"` skips evaluation entirely
 
 #### ARM Templates and Bicep
@@ -2918,9 +2919,10 @@
 - **CanNotDelete 잠금 우선순위**: 관리 잠금은 Owner를 포함한 모든 RBAC 역할보다 우선 — 삭제를 진행하려면 잠금을 먼저 제거해야 함
 - **잠금 관리 권한**: `Microsoft.Authorization/locks/*` 필요 — Contributor 없음; Owner(또는 User Access Administrator) 필요; 시험 답변 = Owner
 - **관리 그룹 RBAC 상속**: MG 범위에서 단일 Reader 할당이 모든 자식 구독을 포함 — 다중 구독 액세스를 위한 최소 할당 수
-- **Policy modify 효과**: 생성 시 태그 자동 추가/업데이트 + 기존 비준수 리소스에 대한 수정 작업 지원 — `append`는 수정 미지원
-- **Policy deny 효과**: 정책 조건을 충족하지 않는 리소스 생성/업데이트 요청 차단 — `audit`은 비준수만 기록
-- **Policy modify 작업 — `add` vs `addOrReplace`**: `add`는 태그가 없을 때만 설정(기존 값 보존); `addOrReplace`는 기존 태그 값 덮어쓰기
+- **Policy 효과 vs 작업**: 효과 = `deny`/`audit`/`modify`/`append`/... . `add`/`addOrReplace`/`Remove`는 `modify` 안의 operation일 뿐
+- **Policy modify 효과**: 생성/수정 때 태그를 바꿈; 기존 리소스는 Remediation Task로 고침 (`append`는 이런 Remediation 없음)
+- **Policy deny 효과**: 비준수 생성/수정을 막음 — `audit`은 기록만
+- **Policy modify 작업 — `add` vs `addOrReplace`**: `modify` 안에서만. `add` = 없을 때만; `addOrReplace` = 덮어쓰기
 - **Policy enforcementMode DoNotEnforce**: 할당의 적용 모드다. 효과 값 `"disabled"`가 아니다. Compliance에 준수·비준수는 남고, deny로 막거나 modify로 고치지는 않는다. 효과 `"disabled"`는 평가 자체를 하지 않는다
 
 #### ARM 템플릿 및 Bicep
