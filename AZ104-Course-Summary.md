@@ -1740,10 +1740,12 @@
 - 커밋 후 복구 지점은 재보호 후에만 다시 생성 가능
 - 시험 팁: ASR 커밋 → 복구 지점 **삭제**, 장애 복구 불가
 
-#### Azure VM Enhanced 백업 정책 — 즉시 복구 스냅샷
-- Enhanced 정책 기본 즉시 복구 스냅샷 보존 기간: **7일**
-- 스냅샷 계층 (VM 근처 디스크 스토리지) + Vault 계층 (장기 보존) 두 계층 저장
-- 시험 팁: Enhanced 정책 + 즉시 복구 스냅샷 → 기본 **7일**
+#### Azure VM 백업 정책 — 표준 vs Enhanced, 즉시 복구 스냅샷
+- VM 백업은 두 계층: **스냅샷(즉시 복구, VM 근처)** + **Vault(장기 보존)**
+- 정책 종류는 두 가지:
+  - **표준(Standard)**: 하루 1회 중심. 즉시 복구 스냅샷 기본 **2일**, 보통 **1~5일**
+  - **Enhanced**: 하루 여러 번 가능(예: 4시간). 즉시 복구 스냅샷 기본 **7일**, 최대 **30일**
+- 시험 팁: 즉시 복구 스냅샷 기본일 → 표준 **2일** / Enhanced **7일**. 섞지 말 것
 
 #### Azure Policy — deny 효과
 - `deny` 효과: 비준수 리소스 생성/업데이트 시 즉시 **차단**
@@ -1933,10 +1935,12 @@
 - Recovery points can only be recreated after performing Re-protect
 - Exam tip: ASR commit → recovery points **deleted**, failback not possible
 
-#### Azure VM Enhanced Backup — Instant Recovery Snapshot
-- Enhanced policy default instant recovery snapshot retention: **7 days**
-- Two tiers: snapshot (near VM) + vault (long-term)
-- Exam tip: Enhanced policy + instant recovery snapshot → default **7 days**
+#### Azure VM Backup Policy — Standard vs Enhanced, Instant Restore Snapshots
+- Two tiers: **snapshot (instant restore, near the VM)** + **vault (long-term)**
+- Two policy types:
+  - **Standard**: typically once daily. Instant restore snapshots default **2 days**, usually **1–5 days**
+  - **Enhanced**: multiple times per day (e.g. every 4 hours). Instant restore snapshots default **7 days**, up to **30 days**
+- Exam tip: default instant restore days → Standard **2** / Enhanced **7**. Do not mix them up
 
 #### Azure Policy — deny Effect
 - `deny` effect: **blocks** non-compliant resource creation/update immediately
@@ -2839,7 +2843,7 @@
 - **VM Insights minimum requirements**: Log Analytics workspace + Azure Monitor Agent — sufficient for performance monitoring; Dependency agent is additional (Map only)
 - **Availability Set Update Domain math**: 10 VMs / 5 UDs = 2 VMs per UD; planned maintenance affects 1 UD at a time → max 2 VMs unavailable simultaneously
 - **ARM template Availability Set managed disks**: `sku.name = Aligned` aligns compute and storage fault domains — not `properties.managed = true`
-- **Enhanced backup policy instant snapshot retention**: Default 7 days for all backup frequencies (4/6/12 hours)
+- **VM backup Standard vs Enhanced instant snapshots**: Standard default **2 days** (1–5); Enhanced default **7 days** (up to 30). Snapshot tier = fast restore near VM; vault = long-term
 - **Azure Disk Encryption + Key Vault co-location**: VM and Key Vault must be in the same region and subscription for Disk Encryption to work
 - **App Service slot setting (sticky)**: Mark setting as deployment slot setting to keep it bound to the slot during swaps — e.g., DatabaseConnection stays with staging
 - **App Service Auto Swap**: Enable on staging slot targeting production for automatic warm-up + swap; Windows App Service plans only
@@ -2905,7 +2909,7 @@
 - **VM Insights 최소 요구 사항**: Log Analytics 작업 영역 + Azure Monitor Agent — 성능 모니터링에 충분; Dependency agent는 추가(맵 전용)
 - **가용성 집합 업데이트 도메인 계산**: 10개 VM / 5개 UD = UD당 2개 VM; 계획된 유지 관리는 한 번에 1개 UD에 영향 → 동시에 최대 2개 VM 사용 불가
 - **ARM 템플릿 가용성 집합 관리 디스크**: `sku.name = Aligned`로 컴퓨팅과 스토리지 장애 도메인 정렬 — `properties.managed = true` 아님
-- **향상된 백업 정책 즉시 스냅샷 보존**: 모든 백업 빈도(4/6/12시간)에 대해 기본 7일
+- **VM 백업 표준 vs Enhanced 즉시 스냅샷**: 표준 기본 **2일**(1~5); Enhanced 기본 **7일**(최대 30). 스냅샷 계층 = VM 근처 빠른 복원; vault = 장기 보존
 - **Azure Disk Encryption + Key Vault 같은 위치**: VM과 Key Vault는 Disk Encryption 작동을 위해 동일 지역 및 구독에 있어야 함
 - **App Service 슬롯 설정(고정)**: 설정을 배포 슬롯 설정으로 표시하면 교체 중에도 슬롯에 바인딩된 채 유지 — 예: DatabaseConnection은 스테이징에 유지
 - **App Service Auto Swap**: 스테이징 슬롯에서 프로덕션을 대상으로 활성화 시 자동 예열 + 교체; Windows App Service 계획만 지원
