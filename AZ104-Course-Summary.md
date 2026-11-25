@@ -962,7 +962,7 @@
 
 #### Backup Policies
 - Define: frequency (daily/weekly), time, timezone, retention period
-- **Instant Restore**: Retains snapshots locally for 1-5 days for faster recovery
+- **Instant Restore**: Local snapshots near the VM for faster recovery. **Standard** policy: default 2 days (1–5). **Enhanced** policy: default 7 days (up to 30)
 - Snapshot → transferred to vault (two-phase process)
 - Supports disks up to 4 TB; Standard SSD and Premium SSD
 
@@ -998,7 +998,7 @@
 
 #### 백업 정책
 - 정의: 빈도(매일/매주), 시간, 시간대, 보존 기간
-- **즉시 복원**: 더 빠른 복구를 위해 스냅샷을 1-5일간 로컬 보관
+- **즉시 복원**: VM 근처 로컬 스냅샷으로 빠르게 복구. **표준** 정책: 기본 2일(1~5). **Enhanced** 정책: 기본 7일(최대 30)
 - 스냅샷 → Vault으로 전송(2단계 프로세스)
 - 최대 4TB 디스크 지원; 표준 SSD 및 프리미엄 SSD
 
@@ -1846,10 +1846,11 @@
 - 승인 경로: 대상 리소스 → 네트워킹 → 프라이빗 엔드포인트 연결 → 승인
 - 시험 팁: 교차 구독 프라이빗 엔드포인트 `보류 중` → **승인** 클릭
 
-#### 프라이빗 DNS VNet 링크 자동 등록
-- 프라이빗 DNS 영역은 VNet 안에서만 쓰는 이름표다. VM이 그 이름을 찾으려면 영역과 VNet을 연결하는 **가상 네트워크 링크**가 있어야 한다
-- **자동 등록**은 링크의 체크박스다. 켠 VNet은 VM을 만들 때 `vm1.영역이름 → 사설 IP` A 레코드를 자동으로 남긴다. 끈 VNet은 그 영역에 적힌 이름을 찾기만 하고, 자기 VM 이름은 올리지 않는다
-- 예: 같은 영역에 VNet1 링크는 자동 등록 켜기(앱 VM 이름 자동 등록), VNet2 링크는 끄기(앱 이름 조회만). 둘 다 조회하려면 링크가 각각 필요하다. 한 VNet에서 자동 등록은 영역 하나에만 켤 수 있다
+#### 프라이빗 DNS — VNet 링크와 VM 자동 등록 (Private Endpoint 아님)
+- Private Endpoint/privatelink DNS가 아니다. VNet 안 **VM 이름 → 사설 IP** 를 위한 프라이빗 DNS 영역이다
+- VM이 그 이름을 찾으려면 영역과 VNet을 잇는 **가상 네트워크 링크**가 있어야 한다
+- **자동 등록**은 링크의 체크박스다. 켜면 그 VNet에 VM을 만들 때 `vm1.영역이름 → 사설 IP` A 레코드를 자동으로 남긴다. 끄면 조회만 하고 자기 VM은 등록하지 않는다
+- 예: VNet1 링크는 자동 등록 ON(앱 VM 등록), VNet2는 OFF(앱 이름 조회만). 둘 다 조회하려면 링크가 각각 필요하다. 한 VNet에서 자동 등록은 영역 하나에만 켤 수 있다
 - 시험 팁: "자동 등록 + 확인 전용" → 각각 별도 VNet 링크; 둘 다 링크 필요
 
 #### 서비스 엔드포인트 정책
@@ -2041,11 +2042,12 @@
 - Approval path: target resource → Networking → Private endpoint connections → Approve
 - Exam tip: Cross-subscription private endpoint `Pending` → **Approve**
 
-#### Private DNS VNet Link Auto-Registration
-- A private DNS zone is a name list visible only inside linked VNets. A VM cannot resolve those names until the zone has a **virtual network link** to that VNet
-- **Auto-registration** is a checkbox on the link. An enabled link writes an A record (`vm1.zone → private IP`) when a VM is created. A disabled link can look up existing names but does not publish that VNet's VMs
-- Example: one zone, VNet1 link with auto-registration on (app VMs register themselves), VNet2 link with it off (lookup only). Both VNets need their own link to resolve names. A VNet can auto-register into only one zone
-- Exam tip: "Auto-register + resolve-only" → separate VNet links each; **both need a link**
+#### Private DNS — VNet link and VM auto-registration (not Private Endpoint)
+- This is not Private Endpoint / privatelink DNS. It is a private DNS zone for **VM name → private IP** inside a VNet
+- A VM can resolve those names only after a **virtual network link** connects the zone to that VNet
+- **Auto-registration** is a checkbox on the link. On: creating a VM writes `vm1.zone → private IP`. Off: resolve only; that VNet's VMs are not published
+- Example: VNet1 link ON (app VMs register), VNet2 OFF (lookup only). Both need their own link. A VNet can auto-register into only one zone
+- Exam tip: "Auto-register + resolve-only" → separate VNet links; **both need a link**
 
 #### Service Endpoint Policy
 - Service endpoint alone: allows access to **all** resources of that service type
@@ -2287,8 +2289,9 @@
 - Contrast: **Azure Site Recovery** uses **cross-region** replication — different rule, but the same vault family name
 
 #### Azure VM Backup — Instant Restore Snapshot Retention
-- Valid range: **1 to 5 days**
-- Local snapshots stored near the VM for faster restore operations
+- Local snapshots near the VM for faster restore (before/alongside vault copy)
+- **Standard** policy: **1–5 days** (default **2**)
+- **Enhanced** policy: default **7 days**, up to **30 days**
 - Do not confuse with: vault retention (years), SQL PITR (up to 35 days), SQL LTR (up to 10 years)
 
 #### AKS Spot Node Pool — Deallocate vs Delete Eviction Policy
@@ -2366,8 +2369,9 @@
 - 비교: **Azure Site Recovery**는 **교차 지역** 복제 사용 — 규칙이 다르지만 vault 이름이 같아서 혼동 주의
 
 #### Azure VM 백업 — 즉시 복원 스냅샷 보존 기간
-- 유효 범위: **1일~5일**
-- VM 근처에 로컬로 저장된 스냅샷으로 더 빠른 복원 작업 지원
+- VM 근처 로컬 스냅샷으로 더 빠른 복원 (vault 복사와 별개/병행 계층)
+- **표준** 정책: **1~5일** (기본 **2일**)
+- **Enhanced** 정책: 기본 **7일**, 최대 **30일**
 - 혼동 금지: vault 보존 기간(수년), SQL PITR(최대 35일), SQL LTR(최대 10년)
 
 #### AKS Spot 노드 풀 — Deallocate 대 Delete 제거 정책
@@ -2568,6 +2572,37 @@
 - **Azure Files vaulted backup**: supports **full share recovery to alternate location only**; original location restore (OLR) and file-level recovery are not supported from vault-tier recovery points
 - **Azure Files authentication — one method at a time**: only one identity-based auth source per storage account; must disable current method before enabling a new one
 - **Azure Files backup — 200 snapshot limit**: Azure Backup for Files uses share snapshots; max 200 snapshots per share; reaching this limit causes backup job failure
+- **Backup terminology (do not mix)**:
+  - **Backup** = the Azure Backup service / act of backing up
+  - **Recovery Services vault (RSV)** = vault resource type A (VMs, Azure Files, SQL/HANA on VMs, MARS; also ASR)
+  - **Backup vault** = vault resource type B (Disks, Blobs, PostgreSQL, AKS) — different resource from RSV
+  - **Snapshot tier vs Vault-Standard** = Azure Files **backup tiers inside RSV**, not a third vault type
+  - Snapshot tier: managed by RSV; **data stays as share snapshots** (ILR / OLR available)
+  - Vault-Standard (“vaulted backup”): managed by RSV; **data also copied into RSV** (no file-level restore)
+```mermaid
+flowchart TB
+  BK["Azure Backup<br/>service / act of backing up"]
+
+  BK --> RSV["Recovery Services vault<br/>vault type A · resource"]
+  BK --> BV["Backup vault<br/>vault type B · resource"]
+
+  RSV --> VM["Azure VM"]
+  RSV --> SQL["SQL / SAP HANA in VM"]
+  RSV --> FILES["Azure Files"]
+  RSV --> MARS["MARS / MABS / DPM"]
+  RSV --> ASR["Site Recovery ASR also here"]
+
+  FILES --> SNAP["Snapshot backup<br/>Snapshot tier"]
+  FILES --> VSTD["Vaulted backup<br/>Vault-Standard"]
+
+  SNAP --> SNAP_D["Share snapshots only<br/>ILR · OLR available"]
+  VSTD --> VSTD_D["Snapshot + data copied<br/>into RSV<br/>no file-level restore"]
+
+  BV --> DISK["Managed Disks"]
+  BV --> BLOB["Blobs"]
+  BV --> PG["PostgreSQL etc."]
+  BV --> AKS["AKS etc."]
+```
 - **Lifecycle management — least expensive action wins**: when delete + archive + cool conditions all apply simultaneously, Azure selects **delete** (least expensive); cost ranking: delete < archive < cool
 - **Last access time tracking prerequisite**: must be enabled before using `daysAfterLastAccessTimeGreaterThan` condition or `enableAutoTierToHotFromCool` property in lifecycle policies
 - **Cool → Cold tier minimum**: blobs must remain in Cool tier for at least **30 days** before moving to Cold to avoid early deletion fees
@@ -2637,6 +2672,37 @@
 - **Azure Files 볼트 백업**: **대체 위치로의 전체 공유 복구만** 지원; OLR 및 파일 수준 복구 미지원
 - **Azure Files 인증 — 한 번에 하나**: 스토리지 계정당 하나의 ID 기반 인증 방법만 지원; 변경 전 기존 방법 비활성화 필요
 - **Azure Files 백업 — 스냅샷 200개 한도**: Azure Backup이 공유 스냅샷 사용; 최대 200개 도달 시 백업 실패
+- **백업 용어 정리 (섞지 말 것)**:
+  - **Backup** = Azure Backup 서비스 / 백업한다는 행위
+  - **Recovery Services vault (RSV)** = 금고 종류 A (VM, Azure Files, VM 위 SQL/HANA, MARS; ASR도 여기)
+  - **Backup vault** = 금고 종류 B (Disks, Blob, PostgreSQL, AKS) — RSV와 **다른 리소스**
+  - **스냅샷 백업 vs Vault-Standard(볼트 백업)** = RSV **안에서** Azure Files용 **백업 티어** (세 번째 금고가 아님)
+  - 스냅샷 티어: 관리는 RSV, **데이터는 공유 스냅샷** (ILR · OLR 가능)
+  - Vault-Standard: 관리는 RSV, **데이터도 RSV로 복사** (파일 단위 복구 없음)
+```mermaid
+flowchart TB
+  BK["Azure Backup<br/>서비스 / 백업한다는 행위"]
+
+  BK --> RSV["Recovery Services vault<br/>금고 종류 A · 리소스"]
+  BK --> BV["Backup vault<br/>금고 종류 B · 리소스"]
+
+  RSV --> VM["Azure VM"]
+  RSV --> SQL["SQL / SAP HANA in VM"]
+  RSV --> FILES["Azure Files"]
+  RSV --> MARS["MARS / MABS / DPM"]
+  RSV --> ASR["Site Recovery ASR도 여기"]
+
+  FILES --> SNAP["스냅샷 백업<br/>Snapshot tier"]
+  FILES --> VSTD["볼트 백업<br/>Vault-Standard"]
+
+  SNAP --> SNAP_D["공유에 스냅샷만<br/>ILR · OLR 가능"]
+  VSTD --> VSTD_D["스냅샷 + 데이터를<br/>RSV로 복사<br/>파일 단위 복구 없음"]
+
+  BV --> DISK["Managed Disks"]
+  BV --> BLOB["Blobs"]
+  BV --> PG["PostgreSQL 등"]
+  BV --> AKS["AKS 등"]
+```
 - **수명 주기 관리 — 가장 저렴한 작업 우선**: 삭제·보관·쿨 조건이 동시에 true → **삭제** 선택 (비용 순위: 삭제 < 보관 < 쿨)
 - **마지막 접근 시간 추적 전제조건**: `daysAfterLastAccessTimeGreaterThan` 및 `enableAutoTierToHotFromCool` 사용 전 활성화 필수
 - **쿨→콜드 계층 최소 기간**: 조기 삭제 요금 방지를 위해 최소 **30일** 쿨 계층 유지 필요
@@ -2820,7 +2886,7 @@
 - **Private Endpoint DNS zone (blob)**: `privatelink.blob.core.windows.net` — created automatically when integrating blob Private Endpoint with a private DNS zone
 - **Azure Firewall FQDN tag**: Application rule + WindowsUpdate FQDN tag = minimal-maintenance Windows Update allow rule; Microsoft manages the FQDN list automatically
 - **Route table region requirement**: Route table and VNet subnet must be in the same region — changing region is not supported; delete and recreate in the correct region
-- **Private DNS VNet link autoregistration**: Auto-registration is a checkbox on each virtual network link. VNet1's link enabled = its VMs get A records automatically. VNet2's link disabled = that VNet can resolve names already in the zone but does not register its own VMs. Both still need a link. Example for zone `app.contoso.internal`: VNet1 (app) registers `app1` and `app2` as VMs are created; VNet2 (database, management) only needs to resolve `app1.contoso.internal` and does not publish its own VM names in this zone
+- **Private DNS VM auto-registration (not Private Endpoint)**: VNet link checkbox. ON = VM A records (`vm → private IP`). OFF = resolve only. Example `app.contoso.internal`: VNet1 registers `app1`/`app2`; VNet2 only looks up `app1`. Both VNets still need a link. Not privatelink DNS
 - **ACI container group shared network namespace**: Containers in the same group communicate via localhost:port (loopback interface shared)
 - **ACI in VNet — internet access**: VNet-injected container groups require NAT gateway or UDR with 0.0.0.0/0 → Internet for outbound internet access
 - **Application Gateway health probe**: Custom probe must be associated with Backend HTTP settings — not listener, routing rule, or backend pool
@@ -2886,7 +2952,7 @@
 - **Private Endpoint DNS 영역(blob)**: `privatelink.blob.core.windows.net` — Blob Private Endpoint를 프라이빗 DNS 영역과 통합할 때 자동으로 생성
 - **Azure Firewall FQDN 태그**: 애플리케이션 규칙 + WindowsUpdate FQDN 태그 = 최소 유지 관리로 Windows Update 허용; Microsoft가 FQDN 목록 자동 관리
 - **경로 테이블 지역 요구 사항**: 경로 테이블과 VNet 서브넷은 동일 지역에 있어야 함 — 지역 변경 불가; 올바른 지역에서 삭제 후 재생성
-- **프라이빗 DNS VNet 링크 자동 등록**: 자동 등록은 VNet 링크의 체크박스다. VNet1 링크를 켜면 그 VM의 A 레코드가 자동으로 생긴다. VNet2 링크를 끄면 영역에 있는 이름은 찾지만 자기 VM은 등록하지 않는다. 조회하려면 둘 다 링크가 있어야 한다. 예: 영역 `app.contoso.internal`에서 VNet1(앱)은 VM이 생길 때마다 `app1`, `app2`를 자동으로 남긴다. VNet2(데이터베이스, 관리)는 `app1.contoso.internal`로 앱 서버를 찾기만 하고, 이쪽 VM 이름은 이 영역에 올리지 않는다
+- **프라이빗 DNS VM 자동 등록 (Private Endpoint 아님)**: VNet 링크 체크박스. ON = VM A 레코드(`vm → 사설 IP`). OFF = 조회만. 예 `app.contoso.internal`: VNet1은 `app1`/`app2` 등록, VNet2는 `app1` 조회만. 둘 다 링크 필요. privatelink DNS가 아님
 - **ACI 컨테이너 그룹 공유 네트워크 네임스페이스**: 같은 그룹의 컨테이너는 localhost:포트를 통해 통신(루프백 인터페이스 공유)
 - **VNet의 ACI — 인터넷 액세스**: VNet 주입된 컨테이너 그룹은 아웃바운드 인터넷 액세스를 위해 NAT 게이트웨이 또는 0.0.0.0/0 → 인터넷 UDR이 필요
 - **Application Gateway 상태 프로브**: 사용자 지정 프로브는 백엔드 HTTP 설정에 연결해야 함 — 수신기, 라우팅 규칙, 백엔드 풀에 연결 불가
@@ -2951,7 +3017,7 @@
 
 #### Site Recovery and Backup
 - **Recovery Plan startup groups**: Startup groups run sequentially (Group 1 → 2 → 3); place SQL in Group 1, App in Group 2, Web in Group 3 to guarantee DB → App → Web dependency order during failover
-- **VM Instant Restore snapshot retention**: Configurable 1–5 days; stored locally near the VM for fast restore before vault transfer
+- **VM Instant Restore snapshot retention**: Standard 1–5 days (default 2); Enhanced default 7 days (up to 30). Local near the VM for fast restore; vault retention is separate
 - **Recovery Services vault region**: Must be in the same region as the protected resource; backup snapshots are region-bound
 - **AKS Spot Deallocate eviction**: Evicted Spot VMs in Stopped (deallocated) state continue consuming vCPU quota — prevents autoscaler from provisioning new nodes; use Delete policy to release quota immediately
 - **Archive blob rehydration**: For immediate access, use High Priority + Hot tier (< 1 hour for objects under 10 GB); Standard Priority = up to 15 hours
@@ -3016,7 +3082,7 @@
 
 #### Site Recovery 및 백업
 - **복구 계획 시작 그룹**: 시작 그룹은 순서대로 실행(Group 1 → 2 → 3); SQL을 Group 1, App을 Group 2, Web을 Group 3에 배치하여 장애 조치 시 DB → App → Web 의존성 순서 보장
-- **VM 인스턴트 복원 스냅샷 보존**: 1~5일 구성 가능; VM 근처에 로컬 저장으로 빠른 복원 지원
+- **VM 인스턴트 복원 스냅샷 보존**: 표준 1~5일(기본 2); Enhanced 기본 7일(최대 30). VM 근처 로컬로 빠른 복원; vault 보존과는 별개
 - **Recovery Services vault 지역**: 보호 대상 리소스와 동일한 지역에 있어야 함; 백업 스냅샷은 지역에 종속
 - **AKS Spot Deallocate 제거**: 제거된 Spot VM이 Stopped (deallocated) 상태로 vCPU 할당량을 계속 점유 — 자동 크기 조정기의 새 노드 프로비저닝 방해; Delete 정책 사용 시 즉시 할당량 반환
 - **Archive Blob 리하이드레이션**: 즉시 접근에는 높은 우선순위 + Hot 계층 사용(10GB 미만 객체 1시간 이내); 표준 우선순위는 최대 15시간 소요
