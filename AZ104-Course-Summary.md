@@ -2610,7 +2610,7 @@ flowchart TB
 - **ARM Complete mode**: deploys template and **deletes all resources in the resource group not defined in the template**; entire RG is synchronised to match the template
 
 #### Azure File Sync
-- **Eligible volumes for cloud tiering**: only **NTFS non-system volumes**; ReFS is not supported; system volume (C:) is not eligible
+- **Eligible volumes for cloud tiering**: must be **NTFS and non-system**; ReFS / FAT / FAT32 not supported. System volume (C:) can host a server endpoint **without** cloud tiering, but cloud tiering itself is not allowed there
 - **Multiple server endpoints — highest free space wins**: when multiple server endpoints share a volume, the **most restrictive (highest) free space policy** is applied across all endpoints
 - **Cloud tiering recall mechanism**: tiered files are replaced locally with placeholder stubs; when accessed, the file is **automatically recalled from Azure** transparently
 
@@ -2636,7 +2636,7 @@ flowchart TB
 - **Logic App for budget automation**: Logic App with built-in connectors (Slack, ITSM, etc.) triggered by Budget alert actions; no custom code required
 
 #### Infrastructure as Code
-- **ARM linked template resource type**: `Microsoft.Resources/deployments` with `templateLink` property
+- **ARM linked template resource type**: Parent template uses `Microsoft.Resources/deployments` with `templateLink` (usually `uri` + optional `contentVersion`) to call another template. That type is the **nested/linked deployment resource**, not the type of resources defined inside the linked file (those remain Storage, VM, etc.). Closest Bicep equivalent: **module**
 - **Bicep conditional output (ternary)**: `output x string = condition ? resource.property : ''`
 - **Azure Resource Graph in Workbooks**: correct data source for cross-subscription VM inventory queries (tags, locations, resource types)
 - **Workbook Contributor role**: provides `microsoft.insights/workbooks/write` permission; more scoped than Monitoring Contributor for workbook-only edit access
@@ -2710,7 +2710,7 @@ flowchart TB
 - **ARM Complete 모드**: 리소스 그룹을 템플릿과 완전 동기화; **템플릿에 없는 리소스는 모두 삭제**
 
 #### Azure File Sync
-- **클라우드 계층화 가능 볼륨**: **NTFS 비시스템 볼륨만** 지원; ReFS 미지원; 시스템 볼륨(C:) 불가
+- **클라우드 계층화 가능 볼륨**: **NTFS이면서 비시스템 볼륨**이어야 함; ReFS / FAT / FAT32 미지원. 시스템 볼륨(C:)에는 서버 엔드포인트는 가능하나 **클라우드 계층화는 불가**
 - **여러 서버 엔드포인트 — 가장 높은 여유 공간 정책 적용**: 동일 볼륨 공유 시 **가장 제한적(높은)** 여유 공간 정책 적용
 - **클라우드 계층화 회수 메커니즘**: 계층화된 파일은 로컬에 플레이스홀더로 유지; 접근 시 **Azure에서 자동 회수** (사용자에게 투명)
 
@@ -2736,7 +2736,7 @@ flowchart TB
 - **Logic App + 예산 자동화**: 예산 경고 작업으로 Logic App 트리거; 기본 제공 커넥터(Slack, ITSM 등) 활용; 사용자 지정 코드 불필요
 
 #### Infrastructure as Code
-- **ARM 연결 템플릿 리소스 유형**: `Microsoft.Resources/deployments` + `templateLink` 속성
+- **ARM 연결 템플릿 리소스 유형**: 부모 템플릿이 `Microsoft.Resources/deployments` + `templateLink`(보통 `uri`, 선택적 `contentVersion`)로 **다른 템플릿을 호출**. 이 타입은 **연결/중첩 배포 리소스**이지, 링크된 파일 안 리소스의 타입이 아님(그 안은 Storage·VM 등). Bicep에서는 **module**이 대응
 - **Bicep 조건부 출력 (삼항)**: `output x string = 조건 ? 리소스.속성 : ''`
 - **Workbook의 Azure Resource Graph**: 여러 구독의 VM 인벤토리 쿼리용 올바른 데이터 소스 (태그, 위치, 리소스 유형)
 - **Workbook Contributor 역할**: `microsoft.insights/workbooks/write` 권한 제공; Monitoring Contributor보다 범위가 좁은 워크북 전용 역할
