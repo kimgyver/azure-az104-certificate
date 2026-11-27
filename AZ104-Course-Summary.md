@@ -2638,7 +2638,7 @@ flowchart TB
 #### Infrastructure as Code
 - **ARM linked template resource type**: Parent template uses `Microsoft.Resources/deployments` with `templateLink` (usually `uri` + optional `contentVersion`) to call another template. That type is the **nested/linked deployment resource**, not the type of resources defined inside the linked file (those remain Storage, VM, etc.). Closest Bicep equivalent: **module**
 - **Bicep conditional output (ternary)**: `output x string = condition ? resource.property : ''`
-- **Azure Resource Graph in Workbooks**: correct data source for cross-subscription VM inventory queries (tags, locations, resource types)
+- **Azure Resource Graph in Workbooks**: correct data source for **cross-subscription asset inventory** (VM list, tags, location, resource type). Contrast: **Log Analytics** = performance, heartbeat, error/activity **logs** (time-series), not inventory
 - **Workbook Contributor role**: provides `microsoft.insights/workbooks/write` permission; more scoped than Monitoring Contributor for workbook-only edit access
 
 #### Monitoring and Operations
@@ -2738,7 +2738,7 @@ flowchart TB
 #### Infrastructure as Code
 - **ARM 연결 템플릿 리소스 유형**: 부모 템플릿이 `Microsoft.Resources/deployments` + `templateLink`(보통 `uri`, 선택적 `contentVersion`)로 **다른 템플릿을 호출**. 이 타입은 **연결/중첩 배포 리소스**이지, 링크된 파일 안 리소스의 타입이 아님(그 안은 Storage·VM 등). Bicep에서는 **module**이 대응
 - **Bicep 조건부 출력 (삼항)**: `output x string = 조건 ? 리소스.속성 : ''`
-- **Workbook의 Azure Resource Graph**: 여러 구독의 VM 인벤토리 쿼리용 올바른 데이터 소스 (태그, 위치, 리소스 유형)
+- **Workbook의 Azure Resource Graph**: **교차 구독 자산 목록/태그/위치/유형** 인벤토리용 올바른 데이터 소스. 대비: **Log Analytics** = 성능·하트비트·오류 등 **로그/시계열** (인벤토리용이 아님)
 - **Workbook Contributor 역할**: `microsoft.insights/workbooks/write` 권한 제공; Monitoring Contributor보다 범위가 좁은 워크북 전용 역할
 
 #### 모니터링 및 운영
@@ -2792,7 +2792,22 @@ flowchart TB
 - **Bicep conditional resource**: `resource x '...' = if (condition) { ... }`
 - **ARM conditional resource**: `"condition": "[parameters('deployStorage')]"` — bool parameter used directly, or with `equals()`
 - **Custom RBAC role Id = null**: must be null when creating new role; Azure auto-generates GUID; AssignableScopes must be explicitly set
-- **Linked template resource type**: `Microsoft.Resources/deployments` with `templateLink` property
+- **Linked template resource type**: Parent uses `Microsoft.Resources/deployments` + `templateLink` to call another template; that type is the nested/linked **deployment**, not the resources inside the linked file (Storage, VM, etc.). Example:
+```json
+{
+  "type": "Microsoft.Resources/deployments",
+  "apiVersion": "2021-04-01",
+  "name": "linkedDeployment",
+  "properties": {
+    "mode": "Incremental",
+    "templateLink": {
+      "uri": "https://.../storage.json",
+      "contentVersion": "1.0.0.0"
+    },
+    "parameters": { }
+  }
+}
+```
 
 #### Identity, RBAC, and Governance
 - **RBAC additive model + NotActions**: effective permissions = union of all role assignments; NotActions excludes permission only within that specific role; another role can still grant the permission
@@ -2854,7 +2869,22 @@ flowchart TB
 - **Bicep 조건부 리소스**: `resource x '...' = if (조건) { ... }`
 - **ARM 조건부 리소스**: `"condition": "[parameters('deployStorage')]"` — 부울 매개변수 직접 사용 또는 `equals()` 사용
 - **사용자 지정 RBAC 역할 Id = null**: 새 역할 생성 시 반드시 null; Azure가 GUID 자동 생성; AssignableScopes는 명시적으로 설정 필요
-- **연결 템플릿 리소스 유형**: `templateLink` 속성이 있는 `Microsoft.Resources/deployments`
+- **연결 템플릿 리소스 유형**: 부모가 `Microsoft.Resources/deployments` + `templateLink`로 다른 템플릿을 호출. 이 타입은 **연결/중첩 배포**이지, 링크된 파일 안 리소스(Storage·VM 등)의 타입이 아님. 예:
+```json
+{
+  "type": "Microsoft.Resources/deployments",
+  "apiVersion": "2021-04-01",
+  "name": "linkedDeployment",
+  "properties": {
+    "mode": "Incremental",
+    "templateLink": {
+      "uri": "https://.../storage.json",
+      "contentVersion": "1.0.0.0"
+    },
+    "parameters": { }
+  }
+}
+```
 
 #### ID, RBAC 및 거버넌스
 - **RBAC 가산적 모델 + NotActions**: 유효 권한 = 모든 역할 할당의 합집합; NotActions는 해당 역할 내에서만 권한 제외; 다른 역할이 여전히 권한을 부여할 수 있음
