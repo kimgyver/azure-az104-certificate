@@ -1,0 +1,46 @@
+// Deny Assignment (거부 할당) 예제
+//
+// ★ 이 예제가 정확히 막는 것:
+//   대상 범위: rg-locked 리소스 그룹
+//   막는 작업: 모든 리소스 삭제 (*/Delete)
+//   누구에게: 전원 (principals SystemDefined 0000... = 모든 보안 주체)
+//   결과: Owner / Contributor 여도 rg-locked 안 리소스를 삭제하면 실패
+//   안 막는 것: 생성·읽기·수정 (이 Deny에 없음)
+//
+// NotActions / Policy 와 구분:
+//   1) 역할 NotActions  → 그 역할에서만 권한 빼기 (다른 역할로 우회 가능)
+//   2) Azure Policy     → "effect": "deny" 로 조건에 맞는 배포/변경 거부
+//   3) Deny Assignment  → type 자체가 하드 차단 (모든 허용 역할보다 우선)
+//
+// "deny" effect 문자열은 없음. denyAssignments 리소스 + permissions.actions = 거부할 작업.
+// 실무에선 배포 스택 등이 isSystemProtected Deny 를 만드는 경우가 많음.
+
+{
+  "type": "Microsoft.Authorization/denyAssignments",
+  "apiVersion": "2022-04-01",
+  "name": "Block-Delete-In-Rg",
+  "properties": {
+    "denyAssignmentName": "Block resource deletes in rg-locked",
+    "description": "rg-locked 안에서 */Delete 만 차단. 생성·수정은 허용 역할이 있으면 가능.",
+    "permissions": [
+      {
+        "actions": [
+          "*/Delete"
+        ],
+        "notActions": [],
+        "dataActions": [],
+        "notDataActions": []
+      }
+    ],
+    "scope": "/subscriptions/your-subscription-id/resourceGroups/rg-locked",
+    "doNotApplyToChildScopes": false,
+    "principals": [
+      {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "type": "SystemDefined"
+      }
+    ],
+    "excludePrincipals": [],
+    "isSystemProtected": true
+  }
+}

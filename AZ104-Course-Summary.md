@@ -1837,7 +1837,7 @@
 - 시험 팁: Storage Account Contributor + Portal → **Shared Key** (RBAC 관련임에도 Azure AD 아님)
 
 #### Blob Private Endpoint DNS 영역
-- Blob 하위 리소스 프라이빗 엔드포인트 + DNS 통합 → `privatelink.blob.core.windows.net`
+- Blob 하위 리소스 프라이빗 엔드포인트 + DNS 통합 → **Private DNS Zone 이름** `privatelink.blob.core.windows.net` (VNet link 아님)
 - 다른 하위 리소스: file → `privatelink.file`, queue → `privatelink.queue`, table → `privatelink.table`
 - 시험 팁: Blob 프라이빗 엔드포인트 DNS 영역 → **`privatelink.blob.core.windows.net`**
 
@@ -2033,7 +2033,7 @@
 - Exam tip: Storage Account Contributor + portal blob access → **Shared Key** (not Azure AD)
 
 #### Blob Private Endpoint DNS Zone
-- Blob subresource private endpoint + DNS integration → `privatelink.blob.core.windows.net`
+- Blob subresource private endpoint + DNS integration → **Private DNS Zone name** `privatelink.blob.core.windows.net` (not a VNet link)
 - Other subresources: file → `privatelink.file`, queue → `privatelink.queue`, table → `privatelink.table`
 - Exam tip: Blob private endpoint DNS zone → **`privatelink.blob.core.windows.net`**
 
@@ -2913,7 +2913,7 @@ flowchart TB
 - **NSG priority first-match**: Rules evaluated lowest priority number first; first matching rule terminates processing — Rule2 (P200 Deny Any) blocks traffic before Rule3 (P300 Allow Internet) is evaluated
 - **LB health probe source IP**: 168.63.129.16 — NSG rules must explicitly allow inbound from this Azure infrastructure IP on the probe port
 - **Private Endpoint approval (cross-subscription)**: Connection stays Pending until the target resource owner approves it from the resource's Private endpoint connections blade
-- **Private Endpoint DNS zone (blob)**: `privatelink.blob.core.windows.net` — created automatically when integrating blob Private Endpoint with a private DNS zone
+- **Private Endpoint DNS zone (blob)**: `privatelink.blob.core.windows.net` is the **Private DNS Zone name** (not a VNet link) — created/used automatically when integrating a blob Private Endpoint with private DNS; VNet link is a separate association so the VNet can resolve that zone
 - **Azure Firewall FQDN tag**: Application rule + WindowsUpdate FQDN tag = minimal-maintenance Windows Update allow rule; Microsoft manages the FQDN list automatically
 - **Route table region requirement**: Route table and VNet subnet must be in the same region — changing region is not supported; delete and recreate in the correct region
 - **Private DNS VM auto-registration (not Private Endpoint)**: VNet link checkbox. ON = VM A records (`vm → private IP`). OFF = resolve only. Example `app.contoso.internal`: VNet1 registers `app1`/`app2`; VNet2 only looks up `app1`. Both VNets still need a link. Not privatelink DNS
@@ -2979,7 +2979,7 @@ flowchart TB
 - **NSG 우선순위 첫 번째 일치**: 가장 낮은 우선순위 번호부터 평가되며 첫 번째 일치 규칙에서 처리 종료 — Rule2(P200 Deny Any)가 Rule3(P300 Allow Internet)보다 먼저 트래픽 차단
 - **LB 상태 프로브 소스 IP**: 168.63.129.16 — NSG 규칙이 프로브 포트에서 이 Azure 인프라 IP의 인바운드를 명시적으로 허용해야 함
 - **Private Endpoint 승인(구독 간)**: 대상 리소스 소유자가 리소스의 프라이빗 엔드포인트 연결 블레이드에서 승인할 때까지 연결은 보류 중 상태 유지
-- **Private Endpoint DNS 영역(blob)**: `privatelink.blob.core.windows.net` — Blob Private Endpoint를 프라이빗 DNS 영역과 통합할 때 자동으로 생성
+- **Private Endpoint DNS 영역(blob)**: `privatelink.blob.core.windows.net`은 **Private DNS Zone 이름**(VNet link 아님) — Blob Private Endpoint를 프라이빗 DNS와 통합할 때 자동 생성/사용; VNet link는 그 Zone을 VNet이 조회하도록 연결하는 별도 설정
 - **Azure Firewall FQDN 태그**: 애플리케이션 규칙 + WindowsUpdate FQDN 태그 = 최소 유지 관리로 Windows Update 허용; Microsoft가 FQDN 목록 자동 관리
 - **경로 테이블 지역 요구 사항**: 경로 테이블과 VNet 서브넷은 동일 지역에 있어야 함 — 지역 변경 불가; 올바른 지역에서 삭제 후 재생성
 - **프라이빗 DNS VM 자동 등록 (Private Endpoint 아님)**: VNet 링크 체크박스. ON = VM A 레코드(`vm → 사설 IP`). OFF = 조회만. 예 `app.contoso.internal`: VNet1은 `app1`/`app2` 등록, VNet2는 `app1` 조회만. 둘 다 링크 필요. privatelink DNS가 아님
